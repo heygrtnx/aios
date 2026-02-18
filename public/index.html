@@ -549,6 +549,45 @@
         max-width: 100%;
       }
 
+      /* ─── Message action buttons ─────────────── */
+      .msg-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+      }
+      .msg:hover .msg-actions,
+      .msg-actions:focus-within {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .msg-actions-user { align-self: flex-end; }
+      .msg-actions-ai   { align-self: flex-start; }
+
+      .msg-action-btn {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: var(--text-3);
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+      }
+      .msg-action-btn:hover {
+        background: var(--surface-2);
+        border-color: var(--border-hi);
+        color: var(--text-2);
+      }
+      .msg-action-btn.copied { color: var(--green); }
+      .msg-action-btn i { font-size: 13px; line-height: 1; }
+
       .hidden {
         display: none !important;
       }
@@ -1117,7 +1156,7 @@
       }
 
       // ── Message builders ───────────────────────────
-      function addUserMsg(typedText, pastedText) {
+      function addUserMsg(typedText, pastedText, fullPrompt) {
         emptyState.classList.add('hidden');
         const row = document.createElement('div');
         row.className = 'msg msg-user';
@@ -1142,6 +1181,29 @@
           bubble.appendChild(textNode);
         }
         row.appendChild(bubble);
+
+        const actions = document.createElement('div');
+        actions.className = 'msg-actions msg-actions-user';
+
+        const copyBtn = makeActionBtn('copy-01', 'Copy message');
+        copyBtn.addEventListener('click', function () {
+          navigator.clipboard.writeText(fullPrompt || typedText || '').then(function () {
+            flashCheck(copyBtn);
+          });
+        });
+        actions.appendChild(copyBtn);
+
+        const editBtn = makeActionBtn('pencil-edit-01', 'Edit message');
+        editBtn.addEventListener('click', function () {
+          promptEl.value = typedText || '';
+          if (pastedText) showPastePill(pastedText);
+          resizePrompt();
+          updateSubmitState();
+          promptEl.focus();
+        });
+        actions.appendChild(editBtn);
+
+        row.appendChild(actions);
         chatInner.appendChild(row);
         forceScrollToBottom();
       }
@@ -1183,6 +1245,33 @@
             errEl.textContent = '\u26A0  ' + msg;
             row.appendChild(errEl);
           },
+          finalize(rawText) {
+            const actions = document.createElement('div');
+            actions.className = 'msg-actions msg-actions-ai';
+
+            const copyBtn = makeActionBtn('copy-01', 'Copy response');
+            copyBtn.addEventListener('click', function () {
+              navigator.clipboard.writeText(rawText).then(function () {
+                flashCheck(copyBtn);
+              });
+            });
+            actions.appendChild(copyBtn);
+
+            const shareBtn = makeActionBtn('share-08', 'Share response');
+            shareBtn.addEventListener('click', async function () {
+              if (navigator.share) {
+                try {
+                  await navigator.share({ text: rawText });
+                } catch (_) {}
+              } else {
+                await navigator.clipboard.writeText(rawText);
+                flashCheck(shareBtn);
+              }
+            });
+            actions.appendChild(shareBtn);
+
+            row.appendChild(actions);
+          },
         };
       }
 
@@ -1207,6 +1296,26 @@
         var i = document.createElement('i');
         i.className = 'hgi-stroke hgi-' + name;
         return i;
+      }
+
+      function makeActionBtn(iconName, label) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'msg-action-btn';
+        btn.setAttribute('aria-label', label);
+        btn.appendChild(makeHgiIcon(iconName));
+        return btn;
+      }
+
+      function flashCheck(btn) {
+        var icon = btn.querySelector('i');
+        var prev = icon.className;
+        btn.classList.add('copied');
+        icon.className = 'hgi-stroke hgi-tick-02';
+        setTimeout(function () {
+          icon.className = prev;
+          btn.classList.remove('copied');
+        }, 1500);
       }
 
       function showPastePill(text) {
@@ -1304,7 +1413,7 @@
         submitBtn.disabled = true;
         setStatus('thinking');
 
-        addUserMsg(typedText, snapPasted);
+        addUserMsg(typedText, snapPasted, prompt);
         const aiMsg = addAIMsg();
 
         try {
@@ -1361,6 +1470,7 @@
             );
             setStatus('error');
           } else {
+            aiMsg.finalize(text);
             setStatus('done');
           }
         } catch (err) {
