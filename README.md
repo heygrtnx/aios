@@ -59,6 +59,7 @@ cp .env.example .env
 | `PRODUCTION_URL` | No | Production host (for API docs) |
 | `AUTHOR_NAME` | No | Author handle shown in the demo UI header ("by X") and footer; omit to hide both |
 | `AUTHOR_URL` | No | URL for the footer author link; only used when `AUTHOR_NAME` is set |
+| `CORS_ORIGINS` | No | Comma-separated list of extra allowed origins (e.g. `https://app.com,https://other.com`). All `http(s)://localhost` and `http(s)://127.0.0.1` ports are always allowed by default. |
 
 ## Database
 

@@ -1,18 +1,28 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app/app.module';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import { AppModule } from '../src/app/app.module';
 import { ConfigService } from '@nestjs/config';
-import * as moment from 'moment-timezone';
+import * as express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import * as express from 'express';
+import * as moment from 'moment-timezone';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
-import { AllExceptionsFilter } from './middleware';
-import { CustomLoggerService } from './lib/loggger/logger.service';
+import { AllExceptionsFilter } from '../src/middleware';
+import { CustomLoggerService } from '../src/lib/loggger/logger.service';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+const server = express();
+let isReady = false;
+
+async function bootstrap(): Promise<void> {
+  if (isReady) return;
+
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+    logger: false,
+  });
+
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
   const productionUrl = configService.get<string>('PRODUCTION_URL');
@@ -20,26 +30,20 @@ async function bootstrap() {
   const appUrl = configService.get<string>('PLATFORM_URL');
   const platform = configService.get<string>('PLATFORM_NAME');
   const logger = app.get(CustomLoggerService);
-  const apiKeyEnabled = !!configService.get<string>('API_KEY');
-  const authorName = configService.get<string>('AUTHOR_NAME');
-  const authorUrl = configService.get<string>('AUTHOR_URL');
 
-  app.use(express.json({ limit: '10kb' }));
-
-  const expressApp = app.getHttpAdapter().getInstance() as express.Application;
-  expressApp.use(express.static('public'));
+  server.use(express.json({ limit: '10kb' }));
 
   app.setGlobalPrefix('v1');
 
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Scalar API docs require inline scripts; CSP causes blank page
+      contentSecurityPolicy: false,
     }),
   );
 
   moment.tz.setDefault('Africa/Lagos');
 
-  expressApp.set('trust proxy', 1);
+  server.set('trust proxy', 1);
 
   app.useGlobalFilters(new AllExceptionsFilter(logger));
 
@@ -51,17 +55,15 @@ async function bootstrap() {
   );
 
   const allowedOrigins: (string | RegExp)[] = [
-    /^https?:\/\/localhost(:\d+)?$/,      // http(s)://localhost[:port]
-    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,  // http(s)://127.0.0.1[:port]
+    /^https?:\/\/localhost(:\d+)?$/,
+    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   ];
 
-  // Add URL origins already declared in env
   [productionUrl, developmentUrl, appUrl]
     .filter((u): u is string => !!u)
     .map((u) => u.replace(/\/$/, ''))
     .forEach((origin) => allowedOrigins.push(origin));
 
-  // Optional: CORS_ORIGINS=https://a.com,https://b.com
   const extraOrigins = configService.get<string>('CORS_ORIGINS');
   if (extraOrigins) {
     extraOrigins
@@ -102,9 +104,9 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);
-  expressApp.get('/v1/docs-json', (_req, res) => res.json(swaggerDocument));
+  server.get('/v1/docs-json', (_req, res) => res.json(swaggerDocument));
   SwaggerModule.setup('v1/swagger', app, swaggerDocument);
-  expressApp.use(
+  server.use(
     '/v1/docs',
     apiReference({
       spec: { url: '/v1/docs-json' },
@@ -113,20 +115,11 @@ async function bootstrap() {
     }),
   );
 
-  try {
-    await app.listen(port);
-    const baseUrl = `http://localhost:${port}`;
-    console.log(`Server running at ${baseUrl}`);
-    console.log(`Scalar: ${baseUrl}/v1/docs`);
-    console.log(`Swagger: ${baseUrl}/v1/swagger`);
-    console.log(
-      `API Key Auth: ${apiKeyEnabled ? 'ENABLED (x-api-key header required)' : 'DISABLED (open access)'}`,
-    );
-    console.log(
-      `Branding: ${authorName ? `ACTIVE (${authorName}${authorUrl ? ` — ${authorUrl}` : ''})` : 'DISABLED (AUTHOR_NAME not set)'}`,
-    );
-  } catch (err) {
-    console.error('Error starting server', err);
-  }
+  await app.init();
+  isReady = true;
 }
-bootstrap();
+
+export default async (req: any, res: any): Promise<void> => {
+  await bootstrap();
+  server(req, res);
+};
