@@ -6,340 +6,612 @@
   <title>AIOS – Stream</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0c0c0e;
-      --bg-elevated: #111113;
-      --surface: #161618;
-      --surface-hover: #1a1a1d;
-      --border: #2a2a2e;
-      --border-subtle: #222225;
-      --text: #f4f4f5;
-      --text-secondary: #a1a1aa;
-      --text-muted: #71717a;
-      --accent: #8b5cf6;
-      --accent-hover: #7c3aed;
-      --accent-dim: rgba(139, 92, 246, 0.12);
-      --accent-glow: rgba(139, 92, 246, 0.25);
-      --shimmer-from: #252528;
-      --shimmer-mid: #323236;
-      --error-bg: rgba(239, 68, 68, 0.08);
-      --error-border: rgba(239, 68, 68, 0.2);
-      --radius: 10px;
-      --radius-sm: 6px;
-      --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-      --shadow-glow: 0 0 0 1px var(--border), 0 8px 32px rgba(0, 0, 0, 0.35);
+      --bg:           #f9f9f9;
+      --bg-glass:     rgba(249, 249, 249, 0.92);
+      --surface:      #ffffff;
+      --surface-2:    #f0f0f0;
+      --border:       rgba(0, 0, 0, 0.07);
+      --border-hi:    rgba(0, 0, 0, 0.12);
+      --text:         #0a0a0a;
+      --text-2:       #555555;
+      --text-3:       #999999;
+      --accent:       #0a0a0a;
+      --accent-lt:    #333333;
+      --accent-dim:   rgba(0, 0, 0, 0.04);
+      --accent-glow:  rgba(0, 0, 0, 0.14);
+      --accent-ring:  rgba(0, 0, 0, 0.08);
+      --amber:        #92400e;
+      --teal:         #0e7490;
+      --green:        #166534;
+      --red:          #b91c1c;
+      --red-dim:      rgba(185, 28, 28, 0.05);
+      --r:            14px;
+      --r-sm:         9px;
+      --ui:           'Syne', system-ui, sans-serif;
+      --mono:         'IBM Plex Mono', 'Fira Code', monospace;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
 
     body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+      height: 100dvh;
+      font-family: var(--ui);
       background: var(--bg);
-      background-image: radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-dim), transparent);
       color: var(--text);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: clamp(1rem, 4vw, 2rem);
+      overflow: hidden;
       -webkit-font-smoothing: antialiased;
     }
 
-    .container {
-      width: 100%;
-      max-width: 44rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.75rem;
+    /* dot-grid atmosphere */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px);
+      background-size: 26px 26px;
+      pointer-events: none;
+      z-index: 0;
     }
 
+    body::after { display: none; }
+
+    /* ─── Header ──────────────────────────────────────────── */
     .header {
-      text-align: center;
-      padding-bottom: 0.25rem;
-    }
-
-    .header h1 {
-      font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-      font-weight: 600;
-      letter-spacing: -0.025em;
-      margin: 0;
-      color: var(--text);
-      background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: var(--shadow-glow);
-    }
-
-    .form-wrap {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border-subtle);
-      background: var(--bg-elevated);
-    }
-
-    .form {
+      position: relative;
+      z-index: 20;
       display: flex;
-      gap: 0.625rem;
-      align-items: flex-end;
-    }
-
-    .field {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 0.375rem;
-    }
-
-    label {
-      font-size: 0.6875rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    #prompt {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      font: inherit;
-      font-size: 0.9375rem;
-      line-height: 1.5;
-      color: var(--text);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      resize: none;
-      min-height: 3rem;
-      max-height: 12rem;
-      overflow-y: hidden;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    #prompt::placeholder {
-      color: var(--text-muted);
-    }
-
-    #prompt:hover {
-      border-color: var(--border);
-    }
-
-    #prompt:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-dim);
-    }
-
-    .input-hint {
-      display: block;
-      margin-top: 0.125rem;
-      font-size: 0.5625rem;
-      color: var(--text-muted);
-      letter-spacing: 0.02em;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 0.5rem;
       align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       flex-shrink: 0;
     }
 
-    .btn-clear {
-      padding: 0.5rem 0.875rem;
-      font: inherit;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
-    }
-    .btn-clear:hover {
-      color: var(--text-secondary);
-      background: var(--surface-hover);
-      border-color: var(--border);
-    }
-
-    .btn {
-      padding: 0.625rem 1.375rem;
-      font: inherit;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #fff;
-      background: var(--accent);
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-    }
-
-    .btn:hover:not(:disabled) {
-      background: var(--accent-hover);
-      box-shadow: 0 4px 14px var(--accent-glow);
-      transform: translateY(-1px);
-    }
-
-    .btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .output-wrap {
-      padding: 1.5rem 1.5rem;
-      min-height: 8rem;
-      background: var(--surface);
-    }
-
-    .output-placeholder {
-      color: var(--text-muted);
-      font-size: 0.9375rem;
-      line-height: 1.55;
-      padding: 0.5rem 0;
-    }
-
-    .thinking {
+    .brand {
       display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.625rem;
     }
 
-    .shimmer-line {
-      height: 0.8125rem;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(
-        90deg,
-        var(--shimmer-from) 0%,
-        var(--shimmer-mid) 45%,
-        var(--shimmer-from) 100%
-      );
-      background-size: 200% 100%;
-      animation: shimmer 1.4s ease-in-out infinite;
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
     }
 
-    .shimmer-line:nth-child(1) { width: 88%; }
-    .shimmer-line:nth-child(2) { width: 72%; }
-    .shimmer-line:nth-child(3) { width: 96%; }
-    .shimmer-line:nth-child(4) { width: 64%; }
-
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+    .brand-icon svg {
+      width: 15px;
+      height: 15px;
+      color: var(--text-2);
     }
 
-    .response-text {
+    .brand-name {
       font-size: 0.9375rem;
-      line-height: 1.65;
-      white-space: pre-wrap;
-      word-break: break-word;
+      font-weight: 800;
+      letter-spacing: 0.05em;
       color: var(--text);
     }
 
-    .response-text .cursor {
+    .brand-name em {
+      font-style: normal;
+      color: var(--text-2);
+    }
+
+    /* status pill */
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.7rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      transition: color 0.3s, background 0.3s, border-color 0.3s;
+    }
+
+    .status.s-thinking { color: var(--amber);  background: rgba(146,64,14,0.06);  border-color: rgba(146,64,14,0.18); }
+    .status.s-streaming{ color: var(--teal);   background: rgba(14,116,144,0.06); border-color: rgba(14,116,144,0.18); }
+    .status.s-done     { color: var(--green);  background: rgba(22,101,52,0.06);  border-color: rgba(22,101,52,0.18); }
+    .status.s-error    { color: var(--red);    background: var(--red-dim);        border-color: rgba(185,28,28,0.18); }
+
+    .status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .status.s-thinking .status-dot,
+    .status.s-streaming .status-dot { animation: pulse-dot 0.9s ease-in-out infinite; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.25; transform: scale(0.7); }
+    }
+
+    /* ─── Main layout ────────────────────────────────────── */
+    .main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ─── Output / Response area ─────────────────────────── */
+    .output-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem 1.25rem 1rem;
+      scroll-behavior: smooth;
+    }
+
+    .output-wrap::-webkit-scrollbar { width: 3px; }
+    .output-wrap::-webkit-scrollbar-track { background: transparent; }
+    .output-wrap::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.14);
+      border-radius: 2px;
+    }
+
+    .output-inner {
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+
+    /* placeholder */
+    .output-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 28vh;
+      gap: 0.75rem;
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    .ph-icon {
+      width: 46px;
+      height: 46px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .ph-icon svg { width: 22px; height: 22px; color: var(--text-3); }
+
+    .ph-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .ph-sub {
+      font-size: 0.8125rem;
+      color: var(--text-3);
+      line-height: 1.6;
+    }
+
+    /* thinking shimmer */
+    .thinking {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .thinking-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4375rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 0.375rem;
+    }
+
+    .thinking-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-dot 0.9s ease-in-out infinite;
+    }
+
+    .shimmer-line {
+      height: 0.6875rem;
+      width: 100%;
+      border-radius: 4px;
+      background: linear-gradient(
+        90deg,
+        var(--surface-2) 0%,
+        rgba(0,0,0,0.04) 45%,
+        var(--surface-2) 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.7s ease-in-out infinite;
+    }
+
+    .shimmer-line:nth-child(2) { width: 92%; }
+    .shimmer-line:nth-child(3) { width: 74%; }
+    .shimmer-line:nth-child(4) { width: 97%; }
+    .shimmer-line:nth-child(5) { width: 58%; }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* response display */
+    .response-wrap { animation: fade-in 0.2s ease; }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .response-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.5625rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-lt);
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: 4px;
+      padding: 0.1875rem 0.5rem;
+      margin-bottom: 0.875rem;
+    }
+
+    #response {
+      font-family: var(--mono);
+      font-size: 0.8875rem;
+      font-weight: 300;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+      letter-spacing: 0.008em;
+    }
+
+    #response .cursor {
       display: inline-block;
       width: 2px;
       height: 1em;
       background: var(--accent);
       margin-left: 2px;
       vertical-align: text-bottom;
+      border-radius: 1px;
       animation: blink 0.7s step-end infinite;
     }
 
-    @keyframes blink {
-      50% { opacity: 0; }
-    }
+    @keyframes blink { 50% { opacity: 0; } }
 
+    /* error */
     .error-msg {
-      font-size: 0.875rem;
-      line-height: 1.45;
-      color: #f87171;
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      line-height: 1.55;
+      color: var(--red);
       padding: 0.875rem 1rem;
-      background: var(--error-bg);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--error-border);
+      background: var(--red-dim);
+      border: 1px solid rgba(248,113,113,0.14);
+      border-radius: var(--r-sm);
     }
 
-    .hidden {
-      display: none !important;
+    .hidden { display: none !important; }
+
+    /* ─── Input area ─────────────────────────────────────── */
+    .input-area {
+      position: relative;
+      z-index: 20;
+      padding: 0.875rem 1.25rem 1.125rem;
+      flex-shrink: 0;
     }
+
+    /* fade-out above input */
+    .input-area::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      height: 3rem;
+      background: linear-gradient(to top, #f9f9f9, transparent);
+      pointer-events: none;
+    }
+
+    .input-inner {
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+
+    /* the card that wraps textarea + footer row */
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--r);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-card:focus-within {
+      border-color: rgba(0,0,0,0.28);
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .input-card.is-loading {
+      border-color: rgba(0,0,0,0.22);
+      animation: card-pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes card-pulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
+      50%       { box-shadow: 0 0 0 3px rgba(0,0,0,0.10); }
+    }
+
+    /* textarea wrapper for relative positioning of clear btn */
+    .textarea-wrap {
+      position: relative;
+    }
+
+    #prompt {
+      display: block;
+      width: 100%;
+      padding: 0.875rem 2.75rem 0.75rem 1rem;
+      font-family: var(--ui);
+      font-size: 0.9375rem;
+      font-weight: 400;
+      line-height: 1.55;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      min-height: 3rem;
+      max-height: 11rem;
+      overflow-y: hidden;
+    }
+
+    #prompt::placeholder { color: var(--text-3); }
+
+    /* clear ×  button — appears inside textarea top-right */
+    #clear {
+      position: absolute;
+      top: 0.5625rem;
+      right: 0.5625rem;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-3);
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s, background 0.15s, color 0.15s;
+    }
+
+    #clear.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #clear:hover {
+      background: rgba(0,0,0,0.06);
+      color: var(--text-2);
+    }
+
+    #clear svg { width: 11px; height: 11px; }
+
+    /* footer row: hint + send */
+    .input-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4375rem 0.75rem 0.625rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .hint {
+      font-size: 0.625rem;
+      color: var(--text-3);
+      letter-spacing: 0.025em;
+      display: flex;
+      align-items: center;
+      gap: 0.3125rem;
+    }
+
+    .hint kbd {
+      font-family: var(--mono);
+      font-size: 0.5625rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: 3px;
+      padding: 0.0625rem 0.3125rem;
+      color: var(--text-2);
+    }
+
+    /* send button */
+    #submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.4375rem 0.9375rem;
+      font-family: var(--ui);
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s, opacity 0.2s;
+    }
+
+    #submit:hover:not(:disabled) {
+      background: #222222;
+      box-shadow: 0 3px 14px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    #submit:active:not(:disabled) { transform: translateY(0); }
+
+    #submit:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #submit svg { width: 12px; height: 12px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>AIOS Stream</h1>
-    </header>
 
-    <div class="card">
-      <div class="form-wrap">
-        <form class="form" id="form">
-          <div class="field">
-            <label for="prompt">Prompt</label>
-            <textarea id="prompt" name="prompt" placeholder="Ask something…" rows="1"></textarea>
-            <span class="input-hint">Enter to send · Shift+Enter for new line</span>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="btn-clear" id="clear" title="Clear input">Clear</button>
-            <button type="submit" class="btn" id="submit">Send</button>
-          </div>
-        </form>
+  <!-- ── Header ──────────────────────────── -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <polygon points="8,1.5 14,5 14,11 8,14.5 2,11 2,5"/>
+          <circle cx="8" cy="8" r="1.75" fill="currentColor" stroke="none"/>
+        </svg>
       </div>
+      <span class="brand-name">AI<em>OS</em></span>
+    </div>
+    <div id="status" class="status">
+      <span class="status-dot"></span>
+      <span id="status-text">READY</span>
+    </div>
+  </header>
 
-      <div class="output-wrap">
-        <p id="placeholder" class="output-placeholder">Response will appear here as it streams.</p>
+  <!-- ── Main ───────────────────────────── -->
+  <main class="main">
+
+    <!-- output -->
+    <div class="output-wrap" id="output-wrap">
+      <div class="output-inner">
+
+        <div id="placeholder" class="output-placeholder">
+          <div class="ph-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3C7.03 3 3 6.58 3 11c0 1.66.53 3.2 1.45 4.47L3 20l4.74-1.27A9.54 9.54 0 0012 19c4.97 0 9-3.58 9-8s-4.03-8-9-8z"/>
+            </svg>
+          </div>
+          <p class="ph-title">What do you want to explore?</p>
+          <p class="ph-sub">Send a message to start streaming a response.<br/>Shift+Enter for a new line.</p>
+        </div>
+
         <div id="thinking" class="thinking hidden">
+          <div class="thinking-tag">
+            <span class="thinking-dot"></span>Thinking
+          </div>
           <div class="shimmer-line"></div>
           <div class="shimmer-line"></div>
           <div class="shimmer-line"></div>
           <div class="shimmer-line"></div>
         </div>
-        <div id="response" class="response-text hidden"></div>
+
+        <div id="response-wrap" class="response-wrap hidden">
+          <div class="response-label">&#9679; AIOS</div>
+          <div id="response"></div>
+        </div>
+
         <p id="error" class="error-msg hidden"></p>
+
       </div>
     </div>
-  </div>
+
+    <!-- input -->
+    <div class="input-area">
+      <div class="input-inner">
+        <form id="form">
+          <div class="input-card" id="input-card">
+            <div class="textarea-wrap">
+              <textarea id="prompt" name="prompt" placeholder="Ask anything…" rows="1" autocomplete="off" spellcheck="false"></textarea>
+              <button type="button" id="clear" aria-label="Clear input">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+                  <line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/>
+                </svg>
+              </button>
+            </div>
+            <div class="input-footer">
+              <span class="hint">
+                <kbd>Enter</kbd> send
+                <span style="opacity:.4">·</span>
+                <kbd>Shift+Enter</kbd> new line
+              </span>
+              <button type="submit" id="submit">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="6" y1="10" x2="6" y2="2"/>
+                  <polyline points="2,6 6,2 10,6"/>
+                </svg>
+                Send
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
 
   <script>
-    const form = document.getElementById('form');
-    const promptEl = document.getElementById('prompt');
-    const submitBtn = document.getElementById('submit');
-    const clearBtn = document.getElementById('clear');
-
-    clearBtn.addEventListener('click', function () {
-      promptEl.value = '';
-      promptEl.style.height = 'auto';
-      promptEl.focus();
-    });
+    const form        = document.getElementById('form');
+    const promptEl    = document.getElementById('prompt');
+    const submitBtn   = document.getElementById('submit');
+    const clearBtn    = document.getElementById('clear');
     const placeholder = document.getElementById('placeholder');
-    const thinking = document.getElementById('thinking');
-    const responseEl = document.getElementById('response');
-    const errorEl = document.getElementById('error');
+    const thinking    = document.getElementById('thinking');
+    const responseWrap= document.getElementById('response-wrap');
+    const responseEl  = document.getElementById('response');
+    const errorEl     = document.getElementById('error');
+    const statusEl    = document.getElementById('status');
+    const statusText  = document.getElementById('status-text');
+    const inputCard   = document.getElementById('input-card');
+    const outputWrap  = document.getElementById('output-wrap');
 
+    // ── Prompt resize ──────────────────────────────────
     function resizePrompt() {
       promptEl.style.height = 'auto';
-      promptEl.style.height = Math.min(promptEl.scrollHeight, 12 * 24) + 'px';
+      promptEl.style.height = Math.min(promptEl.scrollHeight, 264) + 'px';
     }
-    promptEl.addEventListener('input', resizePrompt);
+
+    promptEl.addEventListener('input', function () {
+      resizePrompt();
+      clearBtn.classList.toggle('show', promptEl.value.length > 0);
+    });
+
     promptEl.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -349,30 +621,63 @@
       setTimeout(resizePrompt, 0);
     });
 
+    clearBtn.addEventListener('click', function () {
+      promptEl.value = '';
+      promptEl.style.height = 'auto';
+      clearBtn.classList.remove('show');
+      promptEl.focus();
+    });
+
+    // ── Status pill ────────────────────────────────────
+    const STATUS_MAP = {
+      ready:     { cls: '',           label: 'READY'     },
+      thinking:  { cls: 's-thinking', label: 'THINKING'  },
+      streaming: { cls: 's-streaming',label: 'STREAMING' },
+      done:      { cls: 's-done',     label: 'DONE'      },
+      error:     { cls: 's-error',    label: 'ERROR'     },
+    };
+
+    function setStatus(s) {
+      const m = STATUS_MAP[s] || STATUS_MAP.ready;
+      statusEl.className = 'status' + (m.cls ? ' ' + m.cls : '');
+      statusText.textContent = m.label;
+      inputCard.classList.toggle('is-loading', s === 'thinking' || s === 'streaming');
+    }
+
+    // ── UI state machine ───────────────────────────────
     function setState(state) {
       placeholder.classList.add('hidden');
       thinking.classList.add('hidden');
-      responseEl.classList.add('hidden');
+      responseWrap.classList.add('hidden');
       errorEl.classList.add('hidden');
       errorEl.textContent = '';
+
       if (state === 'idle') {
         placeholder.classList.remove('hidden');
-      }
-      if (state === 'thinking') {
+        setStatus('ready');
+      } else if (state === 'thinking') {
         thinking.classList.remove('hidden');
         responseEl.textContent = '';
+        setStatus('thinking');
+      } else if (state === 'streaming' || state === 'done') {
+        responseWrap.classList.remove('hidden');
+        setStatus(state === 'done' ? 'done' : 'streaming');
+      } else if (state === 'error') {
+        errorEl.classList.remove('hidden');
+        setStatus('error');
       }
-      if (state === 'streaming' || state === 'done') {
-        responseEl.classList.remove('hidden');
-      }
-      if (state === 'error') errorEl.classList.remove('hidden');
     }
 
-    function showError(message) {
+    function showError(msg) {
       setState('error');
-      errorEl.textContent = message;
+      errorEl.textContent = '⚠  ' + msg;
     }
 
+    function scrollToBottom() {
+      outputWrap.scrollTop = outputWrap.scrollHeight;
+    }
+
+    // ── Form submit ────────────────────────────────────
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const prompt = promptEl.value && promptEl.value.trim();
@@ -380,13 +685,14 @@
 
       submitBtn.disabled = true;
       setState('thinking');
+      scrollToBottom();
 
       try {
         const apiUrl = (window.location.origin || 'http://localhost:3000') + '/v1/expose/prompt/stream';
         const res = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: prompt }),
+          body: JSON.stringify({ prompt }),
         });
 
         if (!res.ok) {
@@ -401,7 +707,7 @@
         }
 
         setState('streaming');
-        const reader = res.body.getReader();
+        const reader  = res.body.getReader();
         const decoder = new TextDecoder();
         let text = '';
 
@@ -410,13 +716,15 @@
           if (done) break;
           text += decoder.decode(value, { stream: true });
           responseEl.textContent = text;
-          var cursor = document.createElement('span');
+          const cursor = document.createElement('span');
           cursor.className = 'cursor';
           responseEl.appendChild(cursor);
+          scrollToBottom();
         }
 
-        var lastCursor = responseEl.querySelector('.cursor');
+        const lastCursor = responseEl.querySelector('.cursor');
         if (lastCursor) lastCursor.remove();
+
         if (text.length === 0) {
           showError('No response from the model. Check server logs and AI_GATEWAY_API_KEY in .env.');
         } else {
@@ -426,6 +734,7 @@
         showError(err.message || 'Network or stream error.');
       } finally {
         submitBtn.disabled = false;
+        inputCard.classList.remove('is-loading');
       }
     });
   </script>
