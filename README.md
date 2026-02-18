@@ -5,6 +5,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 ## Features
 
 - **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
+- **Streaming endpoint** – `POST /v1/expose/prompt/stream` to stream the AI response as `text/plain` (chunked)
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
 - **Swagger** – API docs at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
@@ -104,6 +105,7 @@ pnpm run test:cov
 
 - **Server** – `GET /v1` – Health / hello
 - **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns AI-generated text (and can use web search internally)
+- **Expose (stream)** – `POST /v1/expose/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the AI response as `text/plain` with chunked transfer encoding
 
 Full request/response details and auth options are in Swagger at `/v1/docs`.
 

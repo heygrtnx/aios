@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { generateText, stepCountIs } from 'ai';
+import { generateText, streamText, stepCountIs } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 
 import { systemPrompt as SYSTEM_PROMPT } from './sp';
@@ -46,5 +46,24 @@ export class AiService {
       this.logger.error('AI Gateway error', error);
       throw error;
     }
+  }
+
+  /** Returns a stream of text chunks; avoids leaking the SDK's internal return type. */
+  streamResponse(userPrompt: string): { textStream: AsyncIterable<string> } {
+    const model =
+      this.configService.get<string>('AI_MODEL') ??
+      'anthropic/claude-sonnet-4.5';
+
+    const result = streamText({
+      model: this.gateway(model),
+      system: SYSTEM_PROMPT,
+      prompt: userPrompt,
+      tools: {
+        webSearch: webSearch({}),
+      },
+      stopWhen: stepCountIs(5),
+    });
+
+    return { textStream: result.textStream };
   }
 }

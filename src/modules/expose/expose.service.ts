@@ -8,4 +8,8 @@ export class ExposeService {
   async generateResponse(prompt: string) {
     return this.aiService.generateResponse(prompt);
   }
+
+  streamResponse(prompt: string): { textStream: AsyncIterable<string> } {
+    return this.aiService.streamResponse(prompt);
+  }
 }

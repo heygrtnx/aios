@@ -1,4 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Response } from 'express';
+import { Readable } from 'stream';
 import { ExposeService } from './expose.service';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -19,5 +21,30 @@ export class ExposeController {
   })
   async generateResponse(@Body() body: { prompt: string }) {
     return this.exposeService.generateResponse(body.prompt);
+  }
+
+  @Post('prompt/stream')
+  @ApiOperation({ summary: 'Stream a response from the AI (text/plain)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string' },
+      },
+    },
+  })
+  async streamResponse(
+    @Body() body: { prompt: string },
+    @Res({ passthrough: false }) res: Response,
+  ): Promise<void> {
+    const { textStream } = this.exposeService.streamResponse(body.prompt);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    const readable = Readable.from(textStream);
+    readable.pipe(res);
+    return new Promise<void>((resolve, reject) => {
+      res.on('finish', () => resolve());
+      readable.on('error', reject);
+    });
   }
 }
