@@ -12,7 +12,7 @@ import { AllExceptionsFilter } from './middleware';
 import { CustomLoggerService } from './lib/loggger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
   const productionUrl = configService.get<string>('PRODUCTION_URL');
@@ -23,7 +23,8 @@ async function bootstrap() {
   const authorName = configService.get<string>('AUTHOR_NAME');
   const authorUrl = configService.get<string>('AUTHOR_URL');
 
-  app.use(express.json({ limit: '10kb' }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   const expressApp = app.getHttpAdapter().getInstance() as express.Application;
   expressApp.use(express.static('public'));
