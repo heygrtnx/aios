@@ -49,6 +49,7 @@ cp .env.sample .env
 | `AI_GATEWAY_API_KEY` | Yes | API key for the AI gateway used by the SDK |
 | `AI_MODEL` | No | Model identifier (default: `anthropic/claude-sonnet-4.5`) |
 | `PORT` | No | Server port (default: `3000`) |
+| `ENVIRONMENT` | No | Set to `production` to enable abuse protection: when `API_KEY` is not set (open access), prompt endpoints are limited to **3 requests per day per IP**. |
 | `API_KEY` | No | If set, all routes require an `x-api-key: <value>` header. Omit or leave blank for open access. |
 | `PLATFORM_NAME` | No | Name used in Swagger title and docs (e.g. your product name) |
 | `PLATFORM_URL` | No | Main app URL (for Swagger) |

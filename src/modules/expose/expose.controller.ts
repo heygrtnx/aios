@@ -1,11 +1,13 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { Readable } from 'stream';
 import { ExposeService } from './expose.service';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { OpenAccessPromptLimitGuard } from '../../middleware/guards/open-access-prompt-limit.guard';
 
 @ApiTags('Expose')
 @Controller('expose')
+@UseGuards(OpenAccessPromptLimitGuard)
 export class ExposeController {
   constructor(private readonly exposeService: ExposeService) {}
 

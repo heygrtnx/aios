@@ -103,7 +103,6 @@
       min-height: 2.75rem;
       max-height: 12rem;
       overflow-y: hidden;
-      field-sizing: content;
     }
 
     #prompt::placeholder {
@@ -114,6 +113,13 @@
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .input-hint {
+      display: block;
+      margin-top: 0.375rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
     }
 
     .btn {
@@ -223,6 +229,7 @@
           <div class="field">
             <label for="prompt">Prompt</label>
             <textarea id="prompt" name="prompt" placeholder="Ask something…" rows="1"></textarea>
+            <span class="input-hint">Enter to send · Shift+Enter for new line</span>
           </div>
           <button type="submit" class="btn" id="submit">Send</button>
         </form>
@@ -258,6 +265,7 @@
     promptEl.addEventListener('input', resizePrompt);
     promptEl.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
         form.requestSubmit();
         return;
       }
