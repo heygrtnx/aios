@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 
 import { systemPrompt as SYSTEM_PROMPT } from './sp';
@@ -38,6 +38,7 @@ export class AiService {
         tools: {
           webSearch: webSearch({}),
         },
+        stopWhen: stepCountIs(5),
       });
 
       return result.text;
