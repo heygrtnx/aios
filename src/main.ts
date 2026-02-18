@@ -7,6 +7,8 @@ import rateLimit from 'express-rate-limit';
 import * as express from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AllExceptionsFilter } from './middleware';
+import { CustomLoggerService } from './lib/loggger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +18,7 @@ async function bootstrap() {
   const developmentUrl = configService.get<string>('DEVELOPMENT_URL');
   const appUrl = configService.get<string>('PLATFORM_URL');
   const platform = configService.get<string>('PLATFORM_NAME');
+  const logger = app.get(CustomLoggerService);
 
   app.use(express.json({ limit: '10kb' }));
 
@@ -27,6 +30,8 @@ async function bootstrap() {
 
   const expressApp = app.getHttpAdapter().getInstance() as express.Application;
   expressApp.set('trust proxy', 1);
+
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   app.use(
     rateLimit({
