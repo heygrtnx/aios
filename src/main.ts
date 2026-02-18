@@ -21,6 +21,8 @@ async function bootstrap() {
   const platform = configService.get<string>('PLATFORM_NAME');
   const logger = app.get(CustomLoggerService);
   const apiKeyEnabled = !!configService.get<string>('API_KEY');
+  const authorName = configService.get<string>('AUTHOR_NAME');
+  const authorUrl = configService.get<string>('AUTHOR_URL');
 
   app.use(express.json({ limit: '10kb' }));
 
@@ -95,6 +97,9 @@ async function bootstrap() {
     console.log(`Scalar API docs: ${baseUrl}/v1/docs`);
     console.log(
       `API Key Auth: ${apiKeyEnabled ? 'ENABLED (x-api-key header required)' : 'DISABLED (open access)'}`,
+    );
+    console.log(
+      `Branding: ${authorName ? `ACTIVE (${authorName}${authorUrl ? ` — ${authorUrl}` : ''})` : 'DISABLED (AUTHOR_NAME not set)'}`,
     );
   } catch (err) {
     console.error('Error starting server', err);
