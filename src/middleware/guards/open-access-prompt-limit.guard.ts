@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import * as moment from 'moment-timezone';
+import moment from 'moment-timezone';
 
 const WINDOW_TZ = 'Africa/Lagos';
 const MAX_PROMPTS_PER_DAY = 3;

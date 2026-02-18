@@ -5,8 +5,9 @@ import { generateText, streamText, stepCountIs } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 
 import { systemPrompt as SYSTEM_PROMPT } from './sp';
-
+import { createDbTool } from './tools/db.tool';
 import { webSearch } from '@valyu/ai-sdk';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AiService {
@@ -14,7 +15,10 @@ export class AiService {
 
   private readonly gateway;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     /**
      * Correct modern usage:
      * baseURL is NOT required.
@@ -37,6 +41,7 @@ export class AiService {
         prompt: userPrompt,
         tools: {
           webSearch: webSearch({}),
+          database: createDbTool(this.prisma),
         },
         stopWhen: stepCountIs(5),
       });
@@ -60,6 +65,7 @@ export class AiService {
       prompt: userPrompt,
       tools: {
         webSearch: webSearch({}),
+        database: createDbTool(this.prisma),
       },
       stopWhen: stepCountIs(5),
     });
