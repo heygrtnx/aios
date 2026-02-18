@@ -29,6 +29,16 @@ export class AiService {
     });
   }
 
+  private getTools() {
+    const tools: Record<string, ReturnType<typeof webSearch> | ReturnType<typeof createDbTool>> = {
+      database: createDbTool(this.prisma),
+    };
+    if (this.configService.get<string>('VALYU_API_KEY')) {
+      tools.webSearch = webSearch({});
+    }
+    return tools;
+  }
+
   async generateResponse(userPrompt: string): Promise<string> {
     try {
       const model =
@@ -39,10 +49,7 @@ export class AiService {
         model: this.gateway(model),
         system: SYSTEM_PROMPT,
         prompt: userPrompt,
-        tools: {
-          webSearch: webSearch({}),
-          database: createDbTool(this.prisma),
-        },
+        tools: this.getTools(),
         stopWhen: stepCountIs(5),
       });
 
@@ -63,10 +70,7 @@ export class AiService {
       model: this.gateway(model),
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
-      tools: {
-        webSearch: webSearch({}),
-        database: createDbTool(this.prisma),
-      },
+      tools: this.getTools(),
       stopWhen: stepCountIs(5),
     });
 
