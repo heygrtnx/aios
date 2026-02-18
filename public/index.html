@@ -597,7 +597,6 @@
       </div>
       <div class="brand-name">
           <span class="brand-name-main">AI<em>OS</em></span>
-          <span class="brand-name-sub" id="brand-author" style="display:none"></span>
         </div>
     </div>
     <div class="header-right">
@@ -668,7 +667,7 @@
             </div>
           </div>
         </form>
-        <p class="credit" id="credit" style="display:none">Developed by <a id="credit-link" href="#" target="_blank" rel="noopener noreferrer"></a></p>
+
       </div>
     </div>
 
@@ -676,25 +675,6 @@
 
   <script>
     marked.use({ breaks: true, gfm: true });
-
-    // ── Branding (hydrated from env via /v1/branding) ──────────────
-    (async function loadBranding() {
-      try {
-        const res = await fetch('/v1/branding');
-        if (!res.ok) return;
-        const { authorName, authorUrl } = await res.json();
-        if (authorName) {
-          const brandEl = document.getElementById('brand-author');
-          brandEl.textContent = 'by ' + authorName;
-          brandEl.style.display = '';
-          const creditEl  = document.getElementById('credit');
-          const creditLink = document.getElementById('credit-link');
-          creditLink.textContent = authorName;
-          if (authorUrl) creditLink.href = authorUrl;
-          creditEl.style.display = '';
-        }
-      } catch (_) { /* silently keep defaults */ }
-    })();
 
     const form        = document.getElementById('form');
     const promptEl    = document.getElementById('prompt');

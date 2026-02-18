@@ -12,8 +12,5 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get('branding')
-  getBranding(): { authorName: string | null; authorUrl: string | null } {
-    return this.appService.getBranding();
-  }
+
 }
