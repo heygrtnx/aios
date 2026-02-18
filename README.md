@@ -7,7 +7,8 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
 - **Streaming endpoint** – `POST /v1/expose/prompt/stream` to stream the AI response as `text/plain` (chunked)
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
-- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit it for open access. The server logs which mode is active on startup.
+- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access and `ENVIRONMENT=production`, prompt endpoints are limited to **3 per day per IP** to reduce abuse.
+- **Demo page** – Root URL serves a simple streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line.
 - **Swagger** – API docs at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
 - **Database** – PostgreSQL with Prisma (migrations, generate, seed, Studio)
@@ -37,10 +38,10 @@ pnpm install
 
 ## Environment variables
 
-Copy the env sample and set your values:
+Copy the example file and set your values:
 
 ```bash
-cp .env.sample .env
+cp .env.example .env
 ```
 
 | Variable | Required | Description |
@@ -86,10 +87,9 @@ pnpm run build
 pnpm run start:prod
 ```
 
-- API: `http://localhost:3000` (or your `PORT`)
-- Swagger: `http://localhost:3000/v1/docs`
-
-All routes are under the `v1` prefix.
+- **App / demo UI**: `http://localhost:3000` (streaming chat page)
+- **API**: `http://localhost:3000/v1` (all API routes use the `v1` prefix)
+- **Swagger**: `http://localhost:3000/v1/docs`
 
 ## Run tests
 
@@ -115,16 +115,17 @@ Full request/response details and auth options are in Swagger at `/v1/docs`.
 ## Project structure (high level)
 
 ```
+public/                  # Static assets; root serves index.html (streaming chat UI)
 src/
 ├── app/                 # App module, controller, service
 ├── lib/                 # Shared libs
 │   ├── ai/              # AI service, system prompt (sp.ts)
 │   ├── loggger/         # Custom logger
 │   └── prisma/          # Prisma service, seed
-├── middleware/          # Exception filter, API key guard, helpers
+├── middleware/          # Exception filter, API key guard, open-access limit guard
 ├── modules/
-│   └── expose/          # Expose controller & service (prompt endpoint)
-└── main.ts              # Bootstrap, Swagger, CORS, rate limit, validation
+│   └── expose/          # Expose controller & service (prompt + stream)
+└── main.ts              # Bootstrap, static files, Swagger, CORS, rate limit
 ```
 
 To change the assistant’s personality and scope, edit the system prompt in `src/lib/ai/sp.ts`.
