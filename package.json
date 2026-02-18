@@ -4,7 +4,7 @@
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "pnpm prisma migrate deploy && pnpm prisma generate && pnpm run seed && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

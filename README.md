@@ -1,10 +1,10 @@
 # AIOS
 
-A NestJS API backend that exposes an AI-powered assistant via HTTP. It uses the Vercel AI SDK with a configurable gateway, optional web search, and PostgreSQL (Prisma). The system prompt and branding are customizable, so you can adapt it for your own product or use it as a starter for an AI-backed API.
+A NestJS API backend that exposes an AI-powered assistant through a REST API. It uses the Vercel AI SDK with a configurable gateway, optional web search (Valyu), and PostgreSQL (Prisma). The system prompt and branding are customizable, so you can adapt it for your own product or use it as a starter for an AI-backed API.
 
 ## Features
 
-- **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search
+- **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
 - **Swagger** – API docs at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
@@ -16,7 +16,7 @@ A NestJS API backend that exposes an AI-powered assistant via HTTP. It uses the 
 - [NestJS](https://nestjs.com/) 11
 - [Prisma](https://www.prisma.io/) 7 (PostgreSQL)
 - [Vercel AI SDK](https://sdk.vercel.ai/) with `@ai-sdk/gateway`
-- [@valyu/ai-sdk](https://www.npmjs.com/package/@valyu/ai-sdk) for web search
+- [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk) (`@valyu/ai-sdk`) for web search
 - [Swagger](https://docs.nestjs.com/openapi/introduction) (OpenAPI)
 - TypeScript, class-validator, class-transformer, Winston
 
@@ -35,10 +35,10 @@ pnpm install
 
 ## Environment variables
 
-Copy the example env file and set your values:
+Copy the env sample and set your values:
 
 ```bash
-cp .env.example .env
+cp .env.sample .env
 ```
 
 | Variable | Required | Description |
@@ -140,7 +140,7 @@ To change the assistant’s personality and scope, edit the system prompt in `sr
 
 ## License
 
-This project is open source. Add a `LICENSE` file (e.g. MIT or your choice) and update `license` in `package.json` when you publish.
+This project is [MIT licensed](LICENSE).
 
 ## Contributing
 
