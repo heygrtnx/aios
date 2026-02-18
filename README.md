@@ -1,98 +1,147 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AIOS
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS API backend that exposes an AI-powered assistant via HTTP. It uses the Vercel AI SDK with a configurable gateway, optional web search, and PostgreSQL (Prisma). The system prompt and branding are customizable, so you can adapt it for your own product or use it as a starter for an AI-backed API.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search
+- **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
+- **Swagger** – API docs at `/v1/docs` with configurable servers and Bearer auth
+- **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
+- **Database** – PostgreSQL with Prisma (migrations, generate, seed, Studio)
+- **Logging** – Custom logger service; timezone set to Africa/Lagos
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech stack
+
+- [NestJS](https://nestjs.com/) 11
+- [Prisma](https://www.prisma.io/) 7 (PostgreSQL)
+- [Vercel AI SDK](https://sdk.vercel.ai/) with `@ai-sdk/gateway`
+- [@valyu/ai-sdk](https://www.npmjs.com/package/@valyu/ai-sdk) for web search
+- [Swagger](https://docs.nestjs.com/openapi/introduction) (OpenAPI)
+- TypeScript, class-validator, class-transformer, Winston
+
+## Prerequisites
+
+- **Node.js** 18+
+- **pnpm** (recommended) or npm/yarn
+- **PostgreSQL** (local or remote)
+- **AI gateway API key** (e.g. from your AI provider / gateway)
 
 ## Project setup
 
 ```bash
-$ pnpm install
+pnpm install
 ```
 
-## Compile and run the project
+## Environment variables
+
+Copy the example env file and set your values:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+cp .env.example .env
 ```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string (e.g. `postgresql://user:pass@localhost:5432/aios`) |
+| `AI_GATEWAY_API_KEY` | Yes | API key for the AI gateway used by the SDK |
+| `AI_MODEL` | No | Model identifier (default: `anthropic/claude-sonnet-4.5`) |
+| `PORT` | No | Server port (default: `3000`) |
+| `PLATFORM_NAME` | No | Name used in Swagger title and docs (e.g. your product name) |
+| `PLATFORM_URL` | No | Main app URL (for Swagger) |
+| `DEVELOPMENT_URL` | No | Dev server host (for Swagger) |
+| `PRODUCTION_URL` | No | Production host (for Swagger) |
+
+## Database
+
+Generate the Prisma client and run migrations:
+
+```bash
+# Apply migrations and generate client
+pnpm prisma migrate deploy
+pnpm prisma generate
+
+# Optional: seed (current seed is a no-op placeholder)
+pnpm run seed
+```
+
+For local development with migration creation and Studio:
+
+```bash
+pnpm run prisma:dev
+```
+
+## Run the project
+
+```bash
+# Development (watch mode)
+pnpm run start:dev
+
+# Production build and run (includes migrate, generate, seed, then nest build)
+pnpm run build
+pnpm run start:prod
+```
+
+- API: `http://localhost:3000` (or your `PORT`)
+- Swagger: `http://localhost:3000/v1/docs`
+
+All routes are under the `v1` prefix.
 
 ## Run tests
 
 ```bash
-# unit tests
-$ pnpm run test
+# Unit tests
+pnpm run test
 
-# e2e tests
-$ pnpm run test:e2e
+# E2E tests
+pnpm run test:e2e
 
-# test coverage
-$ pnpm run test:cov
+# Coverage
+pnpm run test:cov
 ```
 
-## Deployment
+## API overview
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- **Server** – `GET /v1` – Health / hello
+- **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns AI-generated text (and can use web search internally)
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Full request/response details and auth options are in Swagger at `/v1/docs`.
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+## Project structure (high level)
+
+```
+src/
+├── app/                 # App module, controller, service
+├── lib/                 # Shared libs
+│   ├── ai/              # AI service, system prompt (sp.ts)
+│   ├── loggger/         # Custom logger
+│   └── prisma/          # Prisma service, seed
+├── middleware/          # Exception filter, helpers
+├── modules/
+│   └── expose/          # Expose controller & service (prompt endpoint)
+└── main.ts              # Bootstrap, Swagger, CORS, rate limit, validation
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+To change the assistant’s personality and scope, edit the system prompt in `src/lib/ai/sp.ts`.
 
-## Resources
+## Scripts reference
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+| Script | Description |
+|--------|-------------|
+| `pnpm run start` | Start once |
+| `pnpm run start:dev` | Start in watch mode |
+| `pnpm run start:prod` | Run production build (`node dist/main`) |
+| `pnpm run build` | Migrate, generate, seed, then `nest build` |
+| `pnpm run prisma:dev` | `migrate dev` + generate + Studio |
+| `pnpm run prisma:studio` | Open Prisma Studio |
+| `pnpm run seed` | Run Prisma seed script |
+| `pnpm run lint` | ESLint with fix |
+| `pnpm run format` | Prettier on `src` and `test` |
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is open source. Add a `LICENSE` file (e.g. MIT or your choice) and update `license` in `package.json` when you publish.
+
+## Contributing
+
+Contributions are welcome. Open an issue or a pull request as needed.
