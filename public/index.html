@@ -378,6 +378,51 @@
 
     .hidden { display: none !important; }
 
+    /* ─── Paste strip ────────────────────────────── */
+    #paste-strip {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      padding: 0.625rem 0.75rem 0;
+    }
+    #paste-strip.has-pill { display: flex; }
+
+    .paste-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.3125rem 0.25rem 0.5rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      color: var(--text-2);
+      max-width: 100%;
+    }
+    .paste-pill svg { width: 11px; height: 11px; flex-shrink: 0; color: var(--text-3); }
+    .paste-pill-label {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 22rem;
+    }
+    .paste-pill-remove {
+      display: grid;
+      place-items: center;
+      width: 16px; height: 16px;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--text-3);
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .paste-pill-remove:hover { background: var(--clear-hover-bg); color: var(--text-2); }
+    .paste-pill-remove svg { width: 8px; height: 8px; }
+
     /* ─── Input area ─────────────────────────────── */
     .input-area {
       position: relative;
@@ -644,6 +689,7 @@
       <div class="input-inner">
         <form id="form">
           <div class="input-card" id="input-card">
+            <div id="paste-strip"></div>
             <div class="textarea-wrap">
               <textarea id="prompt" name="prompt" placeholder="Ask anything…" rows="1" autocomplete="off" spellcheck="false"></textarea>
               <button type="button" id="clear" aria-label="Clear input">
@@ -707,6 +753,7 @@
     const chatInner   = document.getElementById('chat-inner');
     const emptyState  = document.getElementById('empty-state');
     const themeToggle = document.getElementById('theme-toggle');
+    const pasteStrip  = document.getElementById('paste-strip');
 
     // ── Theme ──────────────────────────────────────
     const savedTheme = localStorage.getItem('aios-theme') || 'dark';
@@ -791,17 +838,96 @@
       };
     }
 
+    // ── Paste attachment ───────────────────────────
+    const PASTE_THRESHOLD = 500;
+    let pastedContent = null;
+
+    function updateSubmitState() {
+      const hasContent = promptEl.value.length > 0 || pastedContent !== null;
+      clearBtn.classList.toggle('show', hasContent);
+      submitBtn.disabled = !hasContent;
+    }
+
+    function clearPasteAttachment() {
+      pastedContent = null;
+      while (pasteStrip.firstChild) pasteStrip.removeChild(pasteStrip.firstChild);
+      pasteStrip.classList.remove('has-pill');
+    }
+
+    function makeSvgEl(viewBox, shapes) {
+      var ns = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('viewBox', viewBox);
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      shapes.forEach(function (s) {
+        var el = document.createElementNS(ns, s.tag);
+        Object.keys(s).forEach(function (k) { if (k !== 'tag') el.setAttribute(k, s[k]); });
+        svg.appendChild(el);
+      });
+      return svg;
+    }
+
+    function showPastePill(text) {
+      clearPasteAttachment();
+      pastedContent = text;
+      var lines = text.split('\n').length;
+
+      var pill = document.createElement('div');
+      pill.className = 'paste-pill';
+
+      pill.appendChild(makeSvgEl('0 0 24 24', [
+        { tag: 'path', d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' },
+        { tag: 'polyline', points: '14 2 14 8 20 8' },
+      ]));
+
+      var label = document.createElement('span');
+      label.className = 'paste-pill-label';
+      label.textContent = 'Pasted text \u00b7 ' + lines + ' line' + (lines !== 1 ? 's' : '');
+      pill.appendChild(label);
+
+      var rmBtn = document.createElement('button');
+      rmBtn.type = 'button';
+      rmBtn.className = 'paste-pill-remove';
+      rmBtn.setAttribute('aria-label', 'Remove pasted text');
+      rmBtn.appendChild(makeSvgEl('0 0 12 12', [
+        { tag: 'line', x1: '1', y1: '1', x2: '11', y2: '11' },
+        { tag: 'line', x1: '11', y1: '1', x2: '1', y2: '11' },
+      ]));
+      rmBtn.addEventListener('click', function () {
+        clearPasteAttachment();
+        updateSubmitState();
+        promptEl.focus();
+      });
+      pill.appendChild(rmBtn);
+
+      pasteStrip.appendChild(pill);
+      pasteStrip.classList.add('has-pill');
+    }
+
+    promptEl.addEventListener('paste', function (e) {
+      var text = (e.clipboardData || window.clipboardData).getData('text');
+      if (text.length >= PASTE_THRESHOLD) {
+        e.preventDefault();
+        showPastePill(text);
+        updateSubmitState();
+      }
+    });
+
     // ── Prompt resize ──────────────────────────────
     function resizePrompt() {
       promptEl.style.height = 'auto';
-      promptEl.style.height = Math.min(promptEl.scrollHeight, 264) + 'px';
+      var capped = Math.min(promptEl.scrollHeight, 264);
+      promptEl.style.height = capped + 'px';
+      promptEl.style.overflowY = promptEl.scrollHeight > 264 ? 'auto' : 'hidden';
     }
 
     promptEl.addEventListener('input', function () {
       resizePrompt();
-      const hasText = promptEl.value.length > 0;
-      clearBtn.classList.toggle('show', hasText);
-      submitBtn.disabled = !hasText;
+      updateSubmitState();
     });
 
     promptEl.addEventListener('keydown', function (e) {
@@ -816,6 +942,7 @@
     clearBtn.addEventListener('click', function () {
       promptEl.value = '';
       promptEl.style.height = 'auto';
+      clearPasteAttachment();
       clearBtn.classList.remove('show');
       submitBtn.disabled = true;
       promptEl.focus();
@@ -824,12 +951,16 @@
     // ── Submit ─────────────────────────────────────
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const prompt = promptEl.value && promptEl.value.trim();
+      const typedText = promptEl.value ? promptEl.value.trim() : '';
+      const prompt = pastedContent
+        ? (typedText ? typedText + '\n\n' + pastedContent : pastedContent)
+        : typedText;
       if (!prompt) return;
 
       // Clear input immediately
       promptEl.value = '';
       promptEl.style.height = 'auto';
+      clearPasteAttachment();
       clearBtn.classList.remove('show');
 
       submitBtn.disabled = true;
@@ -889,7 +1020,7 @@
         aiMsg.showError(err.message || 'Network or stream error.');
         setStatus('error');
       } finally {
-        submitBtn.disabled = promptEl.value.trim().length === 0;
+        submitBtn.disabled = promptEl.value.trim().length === 0 && pastedContent === null;
         inputCard.classList.remove('is-loading');
         promptEl.focus();
       }

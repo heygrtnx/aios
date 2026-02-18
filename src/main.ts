@@ -17,7 +17,6 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3000);
   const productionUrl = configService.get<string>('PRODUCTION_URL');
   const developmentUrl = configService.get<string>('DEVELOPMENT_URL');
-  const appUrl = configService.get<string>('PLATFORM_URL');
   const platform = configService.get<string>('PLATFORM_NAME');
   const logger = app.get(CustomLoggerService);
   const apiKeyEnabled = !!configService.get<string>('API_KEY');
@@ -33,7 +32,7 @@ async function bootstrap() {
 
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Scalar API docs require inline scripts; CSP causes blank page
+      contentSecurityPolicy: false, // Scalar API docs require inline scripts
     }),
   );
 
@@ -50,27 +49,7 @@ async function bootstrap() {
     }),
   );
 
-  const allowedOrigins: (string | RegExp)[] = [
-    /^https?:\/\/localhost(:\d+)?$/,      // http(s)://localhost[:port]
-    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,  // http(s)://127.0.0.1[:port]
-  ];
-
-  // Add URL origins already declared in env
-  [productionUrl, developmentUrl, appUrl]
-    .filter((u): u is string => !!u)
-    .map((u) => u.replace(/\/$/, ''))
-    .forEach((origin) => allowedOrigins.push(origin));
-
-  // Optional: CORS_ORIGINS=https://a.com,https://b.com
-  const extraOrigins = configService.get<string>('CORS_ORIGINS');
-  if (extraOrigins) {
-    extraOrigins
-      .split(',')
-      .map((o) => o.trim())
-      .filter(Boolean)
-      .forEach((origin) => allowedOrigins.push(origin));
-  }
-
+  const allowedOrigins = [/^http:\/\/localhost:\d+$/];
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,
