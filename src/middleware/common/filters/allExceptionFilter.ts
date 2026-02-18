@@ -58,9 +58,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = exception.message || 'Payment processing error';
         statusType = HttpStatus[HttpStatus.BAD_REQUEST] || 'Bad Request';
       } else {
-        // Generic error - return the actual error message instead of "Internal server error"
+        // Generic error — log the real message internally but never send it to the client
+        // (error messages can contain DATABASE_URL, API keys, or other secrets)
         status = HttpStatus.INTERNAL_SERVER_ERROR;
-        message = exception.message || 'Internal server error';
+        message = 'Internal server error';
         statusType = 'Internal Server Error';
       }
     } else {
