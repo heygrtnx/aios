@@ -7,6 +7,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
 - **Streaming endpoint** – `POST /v1/expose/prompt/stream` to stream the AI response as `text/plain` (chunked)
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
+- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit it for open access. The server logs which mode is active on startup.
 - **Swagger** – API docs at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
 - **Database** – PostgreSQL with Prisma (migrations, generate, seed, Studio)
@@ -48,6 +49,7 @@ cp .env.sample .env
 | `AI_GATEWAY_API_KEY` | Yes | API key for the AI gateway used by the SDK |
 | `AI_MODEL` | No | Model identifier (default: `anthropic/claude-sonnet-4.5`) |
 | `PORT` | No | Server port (default: `3000`) |
+| `API_KEY` | No | If set, all routes require an `x-api-key: <value>` header. Omit or leave blank for open access. |
 | `PLATFORM_NAME` | No | Name used in Swagger title and docs (e.g. your product name) |
 | `PLATFORM_URL` | No | Main app URL (for Swagger) |
 | `DEVELOPMENT_URL` | No | Dev server host (for Swagger) |
@@ -118,7 +120,7 @@ src/
 │   ├── ai/              # AI service, system prompt (sp.ts)
 │   ├── loggger/         # Custom logger
 │   └── prisma/          # Prisma service, seed
-├── middleware/          # Exception filter, helpers
+├── middleware/          # Exception filter, API key guard, helpers
 ├── modules/
 │   └── expose/          # Expose controller & service (prompt endpoint)
 └── main.ts              # Bootstrap, Swagger, CORS, rate limit, validation

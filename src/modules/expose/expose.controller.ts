@@ -40,11 +40,17 @@ export class ExposeController {
     const { textStream } = this.exposeService.streamResponse(body.prompt);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
-    const readable = Readable.from(textStream);
-    readable.pipe(res);
+    // SDK returns AsyncIterableStream (ReadableStream); Node 18+ can pipe via fromWeb.
+    // Cast via unknown to avoid DOM vs Node stream/web ReadableStream type conflict.
+    const nodeStream =
+      typeof (textStream as ReadableStream).getReader === 'function'
+        ? Readable.fromWeb(textStream as unknown as Parameters<typeof Readable.fromWeb>[0])
+        : Readable.from(textStream as AsyncIterable<string>);
+    nodeStream.pipe(res);
     return new Promise<void>((resolve, reject) => {
       res.on('finish', () => resolve());
-      readable.on('error', reject);
+      res.on('error', reject);
+      nodeStream.on('error', reject);
     });
   }
 }

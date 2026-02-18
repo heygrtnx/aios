@@ -19,8 +19,12 @@ async function bootstrap() {
   const appUrl = configService.get<string>('PLATFORM_URL');
   const platform = configService.get<string>('PLATFORM_NAME');
   const logger = app.get(CustomLoggerService);
+  const apiKeyEnabled = !!configService.get<string>('API_KEY');
 
   app.use(express.json({ limit: '10kb' }));
+
+  const expressApp = app.getHttpAdapter().getInstance() as express.Application;
+  expressApp.use(express.static('public'));
 
   app.setGlobalPrefix('v1');
 
@@ -28,7 +32,6 @@ async function bootstrap() {
 
   moment.tz.setDefault('Africa/Lagos');
 
-  const expressApp = app.getHttpAdapter().getInstance() as express.Application;
   expressApp.set('trust proxy', 1);
 
   app.useGlobalFilters(new AllExceptionsFilter(logger));
@@ -97,6 +100,9 @@ async function bootstrap() {
     await app.listen(port);
     console.log(`Server running at http://localhost:${port}`);
     console.log(`Swagger available at http://localhost:${port}/v1/docs`);
+    console.log(
+      `API Key Auth: ${apiKeyEnabled ? 'ENABLED (x-api-key header required)' : 'DISABLED (open access)'}`,
+    );
   } catch (err) {
     console.error('Error starting server', err);
   }

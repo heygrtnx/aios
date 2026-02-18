@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIOS – Stream</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f11;
+      --surface: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #a78bfa;
+      --accent-dim: rgba(167, 139, 250, 0.15);
+      --shimmer: linear-gradient(
+        90deg,
+        var(--border) 0%,
+        #3f3f46 50%,
+        var(--border) 100%
+      );
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 42rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .form-wrap {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    #prompt {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      resize: none;
+      min-height: 2.75rem;
+      max-height: 12rem;
+      overflow-y: hidden;
+      field-sizing: content;
+    }
+
+    #prompt::placeholder {
+      color: var(--text-muted);
+    }
+
+    #prompt:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .btn {
+      padding: 0.75rem 1.25rem;
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--bg);
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .output-wrap {
+      padding: 1.25rem;
+      min-height: 6rem;
+    }
+
+    .output-placeholder {
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .thinking {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+
+    .shimmer-line {
+      height: 0.875rem;
+      border-radius: 4px;
+      background: var(--shimmer);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s ease-in-out infinite;
+    }
+
+    .shimmer-line:nth-child(1) { width: 92%; }
+    .shimmer-line:nth-child(2) { width: 78%; }
+    .shimmer-line:nth-child(3) { width: 85%; }
+    .shimmer-line:nth-child(4) { width: 60%; }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .response-text {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .response-text .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .error-msg {
+      font-size: 0.875rem;
+      color: #f87171;
+      padding: 0.75rem;
+      background: rgba(248, 113, 113, 0.08);
+      border-radius: 8px;
+      border: 1px solid rgba(248, 113, 113, 0.2);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AIOS Stream</h1>
+
+    <div class="card">
+      <div class="form-wrap">
+        <form class="form" id="form">
+          <div class="field">
+            <label for="prompt">Prompt</label>
+            <textarea id="prompt" name="prompt" placeholder="Ask something…" rows="1"></textarea>
+          </div>
+          <button type="submit" class="btn" id="submit">Send</button>
+        </form>
+      </div>
+
+      <div class="output-wrap">
+        <p id="placeholder" class="output-placeholder">Response will appear here as it streams.</p>
+        <div id="thinking" class="thinking hidden">
+          <div class="shimmer-line"></div>
+          <div class="shimmer-line"></div>
+          <div class="shimmer-line"></div>
+          <div class="shimmer-line"></div>
+        </div>
+        <div id="response" class="response-text hidden"></div>
+        <p id="error" class="error-msg hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const promptEl = document.getElementById('prompt');
+    const submitBtn = document.getElementById('submit');
+    const placeholder = document.getElementById('placeholder');
+    const thinking = document.getElementById('thinking');
+    const responseEl = document.getElementById('response');
+    const errorEl = document.getElementById('error');
+
+    function resizePrompt() {
+      promptEl.style.height = 'auto';
+      promptEl.style.height = Math.min(promptEl.scrollHeight, 12 * 24) + 'px';
+    }
+    promptEl.addEventListener('input', resizePrompt);
+    promptEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        form.requestSubmit();
+        return;
+      }
+      setTimeout(resizePrompt, 0);
+    });
+
+    function setState(state) {
+      placeholder.classList.add('hidden');
+      thinking.classList.add('hidden');
+      responseEl.classList.add('hidden');
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
+      if (state === 'idle') {
+        placeholder.classList.remove('hidden');
+      }
+      if (state === 'thinking') {
+        thinking.classList.remove('hidden');
+        responseEl.textContent = '';
+      }
+      if (state === 'streaming' || state === 'done') {
+        responseEl.classList.remove('hidden');
+      }
+      if (state === 'error') errorEl.classList.remove('hidden');
+    }
+
+    function showError(message) {
+      setState('error');
+      errorEl.textContent = message;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = promptEl.value && promptEl.value.trim();
+      if (!prompt) return;
+
+      submitBtn.disabled = true;
+      setState('thinking');
+
+      try {
+        const apiUrl = (window.location.origin || 'http://localhost:3000') + '/v1/expose/prompt/stream';
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt }),
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          showError(err || 'Request failed: ' + res.status);
+          return;
+        }
+
+        if (!res.body) {
+          showError('No response body from server.');
+          return;
+        }
+
+        setState('streaming');
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let text = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+          responseEl.textContent = text;
+          var cursor = document.createElement('span');
+          cursor.className = 'cursor';
+          responseEl.appendChild(cursor);
+        }
+
+        var lastCursor = responseEl.querySelector('.cursor');
+        if (lastCursor) lastCursor.remove();
+        if (text.length === 0) {
+          showError('No response from the model. Check server logs and AI_GATEWAY_API_KEY in .env.');
+        } else {
+          setState('done');
+        }
+      } catch (err) {
+        showError(err.message || 'Network or stream error.');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
