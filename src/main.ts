@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import * as express from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
 import { AllExceptionsFilter } from './middleware';
 import { CustomLoggerService } from './lib/loggger/logger.service';
 
@@ -75,31 +76,23 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);
-
-  SwaggerModule.setup('v1/docs', app, swaggerDocument, {
-    customSiteTitle: `${platform} API`,
-    swaggerOptions: {
-      explorer: false,
-      defaultModelsExpandDepth: -1,
-      docExpansion: 'list',
-      defaultModelRendering: 'model',
-      filter: true,
-      showExtensions: true,
-      showCommonExtensions: true,
-      displayRequestDuration: true,
-      jsonEditor: true,
-      useUnsafeSource: true,
-      deepLinking: true,
-    },
-    customCss: `
-      .swagger-ui .topbar { display: none; }
-    `,
-  });
+  expressApp.get('/v1/docs-json', (_req, res) => res.json(swaggerDocument));
+  expressApp.use(
+    '/v1/docs',
+    apiReference({
+      url: '/v1/docs-json',
+      theme: 'default',
+      metaData: {
+        title: `${platform} API`,
+      },
+    }),
+  );
 
   try {
     await app.listen(port);
-    console.log(`Server running at http://localhost:${port}`);
-    console.log(`Swagger available at http://localhost:${port}/v1/docs`);
+    const baseUrl = `http://localhost:${port}`;
+    console.log(`Server running at ${baseUrl}`);
+    console.log(`Scalar API docs: ${baseUrl}/v1/docs`);
     console.log(
       `API Key Auth: ${apiKeyEnabled ? 'ENABLED (x-api-key header required)' : 'DISABLED (open access)'}`,
     );

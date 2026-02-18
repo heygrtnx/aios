@@ -30,6 +30,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
+    "@scalar/nestjs-api-reference": "^1.0.24",
     "@valyu/ai-sdk": "^1.1.0",
     "ai": "^6.0.90",
     "class-transformer": "^0.5.1",

@@ -9,7 +9,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
 - **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access and `ENVIRONMENT=production`, prompt endpoints are limited to **3 per day per IP** to reduce abuse.
 - **Demo page** – Root URL serves a simple streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line.
-- **Swagger** – API docs at `/v1/docs` with configurable servers and Bearer auth
+- **API docs** – [Scalar](https://scalar.com/) API reference at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
 - **Database** – PostgreSQL with Prisma (migrations, generate, seed, Studio)
 - **Logging** – Custom logger service; timezone set to Africa/Lagos
@@ -20,7 +20,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - [Prisma](https://www.prisma.io/) 7 (PostgreSQL)
 - [Vercel AI SDK](https://sdk.vercel.ai/) with `@ai-sdk/gateway`
 - [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk) (`@valyu/ai-sdk`) for web search
-- [Swagger](https://docs.nestjs.com/openapi/introduction) (OpenAPI)
+- [Scalar](https://scalar.com/) + [NestJS Swagger](https://docs.nestjs.com/openapi/introduction) (OpenAPI)
 - TypeScript, class-validator, class-transformer, Winston
 
 ## Prerequisites
@@ -53,10 +53,12 @@ cp .env.example .env
 | `PORT` | No | Server port (default: `3000`) |
 | `ENVIRONMENT` | No | Set to `production` to enable abuse protection: when `API_KEY` is not set (open access), prompt endpoints are limited to **3 requests per day per IP**. |
 | `API_KEY` | No | If set, all routes require an `x-api-key: <value>` header. Omit or leave blank for open access. |
-| `PLATFORM_NAME` | No | Name used in Swagger title and docs (e.g. your product name) |
-| `PLATFORM_URL` | No | Main app URL (for Swagger) |
-| `DEVELOPMENT_URL` | No | Dev server host (for Swagger) |
-| `PRODUCTION_URL` | No | Production host (for Swagger) |
+| `PLATFORM_NAME` | No | Name used in API docs title (e.g. your product name) |
+| `PLATFORM_URL` | No | Main app URL (for API docs) |
+| `DEVELOPMENT_URL` | No | Dev server host (for API docs) |
+| `PRODUCTION_URL` | No | Production host (for API docs) |
+| `AUTHOR_NAME` | No | Author handle shown in the demo UI header ("by X") and footer; omit to hide both |
+| `AUTHOR_URL` | No | URL for the footer author link; only used when `AUTHOR_NAME` is set |
 
 ## Database
 
@@ -90,7 +92,7 @@ pnpm run start:prod
 
 - **App / demo UI**: `http://localhost:3000` (streaming chat page)
 - **API**: `http://localhost:3000/v1` (all API routes use the `v1` prefix)
-- **Swagger**: `http://localhost:3000/v1/docs`
+- **API docs (Scalar)**: `http://localhost:3000/v1/docs`
 
 ## Run tests
 
@@ -108,10 +110,11 @@ pnpm run test:cov
 ## API overview
 
 - **Server** – `GET /v1` – Health / hello
+- **Branding** – `GET /v1/branding` – Returns `{ authorName, authorUrl }` from env; used by the demo UI to hydrate the header and footer
 - **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns AI-generated text (and can use web search internally)
 - **Expose (stream)** – `POST /v1/expose/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the AI response as `text/plain` with chunked transfer encoding
 
-Full request/response details and auth options are in Swagger at `/v1/docs`.
+Full request/response details and auth options are in the API docs at `/v1/docs`.
 
 ## Project structure (high level)
 
@@ -126,7 +129,7 @@ src/
 ├── middleware/          # Exception filter, API key guard, open-access limit guard
 ├── modules/
 │   └── expose/          # Expose controller & service (prompt + stream)
-└── main.ts              # Bootstrap, static files, Swagger, CORS, rate limit
+└── main.ts              # Bootstrap, static files, Scalar API docs, CORS, rate limit
 ```
 
 To change the assistant’s personality and scope, edit the system prompt in `src/lib/ai/sp.ts`.
