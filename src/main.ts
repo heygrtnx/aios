@@ -68,6 +68,7 @@ async function bootstrap() {
       'Authorization',
     )
     .addTag('Server', 'Endpoint for Server functions')
+    .addTag('Expose', 'Endpoint for Expose functions')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);

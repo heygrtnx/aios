@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { LibModule } from '../lib/lib.module';
 import { CustomLoggerService } from '../lib/loggger/logger.service';
+import { V1Module } from '../modules/v1.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { CustomLoggerService } from '../lib/loggger/logger.service';
       isGlobal: true,
     }),
     LibModule,
+    V1Module,
   ],
   controllers: [AppController],
   providers: [AppService, CustomLoggerService],
