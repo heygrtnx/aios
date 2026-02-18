@@ -8,7 +8,7 @@ import {
 import { Request, Response } from 'express';
 import { capitalizedMessage } from '../../helpers';
 import { CustomLoggerService } from 'src/lib/loggger/logger.service';
-import { Prisma } from '@prismaPath';
+import { Prisma } from '../../../../generated/prisma/client';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

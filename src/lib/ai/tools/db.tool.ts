@@ -2,98 +2,101 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { PrismaService } from '../../prisma/prisma.service';
 
-const MAX_SELECT_LIMIT = 100;
+/** Options for the DB tool. When you have auth, pass getCurrentUserId so "my account" queries work. */
+export type DbToolOptions = {
+  getCurrentUserId?: () => Promise<string | null>;
+};
 
-async function getTableNames(prisma: PrismaService): Promise<string[]> {
-  const rows = await prisma.$queryRaw<
-    { table_name: string }[]
-  >`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`;
-  return rows.map((r) => r.table_name);
+const RETRIEVAL_INTENTS = ['account_created_at', 'account_email'] as const;
+
+const INTENT_ENUM = z.enum(RETRIEVAL_INTENTS);
+
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
 }
 
-function escapeTableName(name: string): string {
-  return name.replace(/"/g, '""');
+async function handleAccountCreatedAt(
+  prisma: PrismaService,
+  userId: string | null,
+): Promise<string> {
+  try {
+    // Single known query for "when did I create my account". No schema exposed to the model.
+    if (!userId) {
+      return "I can't look up your account date without knowing who you are. If you're logged in, try asking again from the app.";
+    }
+    const rows = await prisma.$queryRaw<
+      { createdAt: Date }[]
+    >`SELECT "createdAt" FROM "User" WHERE id = ${userId} LIMIT 1`;
+    const createdAt = rows[0]?.createdAt;
+    if (!createdAt) {
+      return "I couldn't find an account creation date for you.";
+    }
+    return `You created your account on ${formatDate(createdAt.toISOString())}.`;
+  } catch {
+    return "I don't have access to that information right now.";
+  }
 }
 
-export function createDbTool(prisma: PrismaService) {
+async function handleAccountEmail(
+  prisma: PrismaService,
+  userId: string | null,
+): Promise<string> {
+  try {
+    if (!userId) {
+      return "I can't look up your email without knowing who you are. If you're logged in, try asking again from the app.";
+    }
+    const rows = await prisma.$queryRaw<
+      { email: string | null }[]
+    >`SELECT email FROM "User" WHERE id = ${userId} LIMIT 1`;
+    const email = rows[0]?.email;
+    if (email == null || email === '') {
+      return "I couldn't find an email on file for your account.";
+    }
+    return `The email on your account is ${email}.`;
+  } catch {
+    return "I don't have access to that information right now.";
+  }
+}
+
+export function createDbTool(
+  prisma: PrismaService,
+  options: DbToolOptions = {},
+) {
+  const { getCurrentUserId } = options;
+
   return tool({
-    description: `Query the database for information. Use when the user asks about data, records, tables, or what is stored in the database. You can list tables, describe a table's columns, or fetch sample rows from a table (read-only).`,
+    description: `Use this only to answer the user's question with information that must come from the database. Do NOT list tables, describe schema, or show raw data. Only use when the user asks something like: when they created their account, what email is on their account, or similar factual questions about their data. Call with the appropriate intent and respond to the user with the returned answer.`,
     inputSchema: z.object({
-      action: z
-        .enum(['list_tables', 'describe_table', 'select_rows'])
-        .describe(
-          'list_tables: get all table names. describe_table: get columns for one table. select_rows: get up to limit rows from a table.',
-        ),
-      tableName: z
-        .string()
-        .optional()
-        .describe(
-          'Required for describe_table and select_rows. The table name (e.g. User, Post).',
-        ),
-      limit: z
-        .number()
-        .min(1)
-        .max(MAX_SELECT_LIMIT)
-        .optional()
-        .default(10)
-        .describe(
-          'For select_rows only. Max rows to return (default 10, max 100).',
-        ),
+      intent: INTENT_ENUM.describe(
+        'account_created_at: when did the user create their account. account_email: what email is on the user account.',
+      ),
     }),
-    execute: async ({ action, tableName, limit }) => {
-      try {
-        if (action === 'list_tables') {
-          const tables = await getTableNames(prisma);
+    execute: async ({ intent }) => {
+      const userId = getCurrentUserId ? await getCurrentUserId() : null;
+
+      switch (intent) {
+        case 'account_created_at':
           return {
-            tables: tables.length ? tables : [],
-            message:
-              tables.length === 0
-                ? 'There are no user tables in the public schema yet.'
-                : undefined,
+            answer: await handleAccountCreatedAt(prisma, userId),
           };
-        }
-
-        if (!tableName?.trim()) {
-          return { error: 'tableName is required for this action.' };
-        }
-
-        const tables = await getTableNames(prisma);
-        const safeName = tableName.trim();
-        if (!tables.includes(safeName)) {
+        case 'account_email':
           return {
-            error: `Table "${safeName}" not found. Available tables: ${tables.join(', ') || '(none)'}.`,
+            answer: await handleAccountEmail(prisma, userId),
           };
-        }
-
-        if (action === 'describe_table') {
-          const columns = await prisma.$queryRaw<
-            { column_name: string; data_type: string }[]
-          >`
-            SELECT column_name, data_type
-            FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = ${safeName}
-            ORDER BY ordinal_position
-          `;
-          return { table: safeName, columns };
-        }
-
-        if (action === 'select_rows') {
-          const safeLimit = Math.min(
-            Math.max(1, Number(limit) || 10),
-            MAX_SELECT_LIMIT,
-          );
-          const quoted = `"${escapeTableName(safeName)}"`;
-          const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-            `SELECT * FROM ${quoted} LIMIT $1`,
-            safeLimit,
-          );
-          return { table: safeName, rowCount: rows.length, rows };
-        }
-
-        return { error: 'Unknown action.' };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return { error: `Database error: ${message}` };
+        default:
+          return {
+            answer: "I don't have a way to look up that information.",
+          };
       }
     },
   });
