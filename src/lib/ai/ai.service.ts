@@ -8,6 +8,7 @@ import { systemPrompt as SYSTEM_PROMPT } from './sp';
 import { createDbTool } from './tools/db.tool';
 import { createMediaTool } from './tools/media.tool';
 import { createSheetUploadTool } from './tools/sheet.tool';
+import { createGetProductCatalogTool } from './tools/catalog.tool';
 import { createRfqTool } from './tools/rfq.tool';
 import { createSendRfqEmailTool } from './tools/send-rfq-email.tool';
 import { webSearch } from '@valyu/ai-sdk';
@@ -56,6 +57,7 @@ export class AiService {
       database: createDbTool(this.prisma),
       media: createMediaTool(model),
       uploadToSheet: createSheetUploadTool(this.configService, this.redis),
+      getProductCatalog: createGetProductCatalogTool(this.redis),
       processRfq: createRfqTool(this.configService, this.redis, this.sheets),
       sendRfqEmail: createSendRfqEmailTool(this.configService, this.redis, this.mailer),
     };
