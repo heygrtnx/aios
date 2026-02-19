@@ -1,0 +1,152 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <meta name='color-scheme' content='light' />
+    <meta name='supported-color-schemes' content='light' />
+    <title>Admin Invitation</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+          Arial, sans-serif;
+        line-height: 1.6;
+        background-color: #ffffff;
+        padding: 20px;
+        color: #000000;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #f9733a;
+      }
+      .content {
+        padding: 32px;
+        text-align: left;
+      }
+      .title {
+        font-size: 24px;
+        color: #f9733a;
+        margin-bottom: 24px;
+        font-weight: 600;
+      }
+      .message {
+        color: #333333;
+        margin-bottom: 16px;
+        font-size: 16px;
+      }
+      .user-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #f9733a;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .info-box {
+        background-color: #fef3f2;
+        border-left: 4px solid #f9733a;
+        padding: 16px;
+        margin: 24px 0;
+        border-radius: 4px;
+      }
+      .info-item {
+        margin-bottom: 8px;
+      }
+      .info-label {
+        font-weight: 600;
+        color: #333333;
+      }
+      .info-value {
+        color: #666666;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: #f9733a;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 24px 0;
+        font-weight: 600;
+      }
+      .footer {
+        text-align: center;
+        padding: 24px;
+        color: #666666;
+        font-size: 14px;
+        border-top: 1px solid #f9733a;
+      }
+      @media only screen and (max-width: 600px) {
+        body {
+          padding: 12px;
+        }
+        .container {
+          width: 100%;
+        }
+        .content {
+          padding: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class='container'>
+      <div class='content'>
+        <h1 class='title'>Admin Invitation</h1>
+        <p class='message'>
+          Hello
+          <span class='user-name'>{{name}}</span>
+          You have been invited to join {{platform}} as an administrator.
+        </p>
+
+        <div class='info-box'>
+          <div class='info-item'>
+            <span class='info-label'>Role:</span>
+            <span class='info-value'>{{role}}</span>
+          </div>
+          <div class='info-item'>
+            <span class='info-label'>Email:</span>
+            <span class='info-value'>{{email}}</span>
+          </div>
+        </div>
+
+        <p class='message'>
+          To complete your admin account setup, please set your password by
+          clicking the button below:
+        </p>
+
+        <p style='text-align: center; margin: 24px 0;'>
+          <a href='{{setupPasswordLink}}' class='button'>Set your password</a>
+        </p>
+
+        <p class='message'>
+          This link will expire after use. If you did not expect this
+          invitation, you can safely ignore this email.
+        </p>
+
+        <p class='message'>
+          Best regards,<br />
+          The
+          {{platform}}
+          Team
+        </p>
+      </div>
+
+      <div class='footer'>
+        <p>
+          If you need assistance, please contact our support team at
+          {{platformMail}}
+        </p>
+        <p>&copy; {{platform}} {{currentYear}}. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>
+

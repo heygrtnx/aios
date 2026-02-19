@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quote {{quoteNumber}}</title>
+<style>
+  body { margin: 0; padding: 0; background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; }
+  .wrapper { max-width: 680px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 36px 40px; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .brand { color: #e2e8f0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .quote-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 16px; text-align: right; }
+  .quote-badge .label { color: rgba(255,255,255,0.6); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .quote-badge .number { color: #ffffff; font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .header-meta { margin-top: 24px; display: flex; gap: 32px; }
+  .meta-item .label { color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .meta-item .value { color: #e2e8f0; font-size: 13px; margin-top: 3px; }
+  .body { padding: 36px 40px; }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; font-weight: 600; }
+  .contact-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 28px; }
+  .contact-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+  .contact-details { margin-top: 6px; color: #64748b; font-size: 13px; line-height: 1.7; }
+  .ship-row { display: flex; gap: 24px; margin-bottom: 28px; }
+  .ship-card { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; }
+  .ship-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; margin-bottom: 6px; }
+  .ship-card .value { font-size: 14px; color: #1e293b; font-weight: 500; }
+  table.items { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  table.items thead th { background: #1a1a2e; color: #e2e8f0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 14px; text-align: left; font-weight: 600; }
+  table.items thead th:not(:first-child) { text-align: right; }
+  table.items tbody tr:nth-child(even) { background: #f8fafc; }
+  table.items tbody td { padding: 12px 14px; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+  table.items tbody td:not(:first-child) { text-align: right; }
+  table.items tbody td.sku { font-weight: 600; color: #1e293b; }
+  table.items tbody td.tbd { color: #94a3b8; font-style: italic; }
+  .total-row { display: flex; justify-content: flex-end; margin-bottom: 32px; }
+  .total-box { background: #1a1a2e; border-radius: 8px; padding: 14px 24px; display: flex; gap: 48px; align-items: center; }
+  .total-box .label { color: rgba(255,255,255,0.6); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .total-box .amount { color: #ffffff; font-size: 22px; font-weight: 800; }
+  .notes-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px; font-size: 13px; color: #92400e; line-height: 1.6; }
+  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 40px; text-align: center; color: #94a3b8; font-size: 12px; line-height: 1.7; }
+  .footer a { color: #64748b; text-decoration: none; }
+  @media print {
+    body { background: white; }
+    .wrapper { box-shadow: none; margin: 0; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="brand">{{platformName}}</div>
+      <div class="quote-badge">
+        <div class="label">Quote Reference</div>
+        <div class="number">{{quoteNumber}}</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item">
+        <div class="label">Issue Date</div>
+        <div class="value">{{quoteDate}}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Valid Until</div>
+        <div class="value">{{validUntil}}</div>
+      </div>
+      {{#if deliveryDate}}
+      <div class="meta-item">
+        <div class="label">Requested Delivery</div>
+        <div class="value">{{deliveryDate}}</div>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <!-- Contact -->
+    <div class="section-title">Bill To</div>
+    <div class="contact-card">
+      <div class="contact-name">{{contactName}}</div>
+      <div class="contact-details">
+        {{#if contactEmail}}{{contactEmail}}<br/>{{/if}}
+        {{#if contactPhone}}{{contactPhone}}{{/if}}
+      </div>
+    </div>
+
+    <!-- Ship To -->
+    <div class="ship-row">
+      <div class="ship-card">
+        <div class="label">Ship To</div>
+        <div class="value">{{shipTo}}</div>
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="section-title">Items</div>
+    <table class="items">
+      <thead>
+        <tr>
+          <th>Description / SKU</th>
+          <th>Qty</th>
+          <th>Unit</th>
+          <th>Unit Price</th>
+          <th>Line Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each lineItems}}
+        <tr>
+          <td class="sku">{{this.sku}}</td>
+          <td>{{this.qty}}</td>
+          <td>{{this.unit}}</td>
+          {{#if this.unitPrice}}
+          <td>${{this.unitPrice}}</td>
+          <td>${{this.lineTotal}}</td>
+          {{else}}
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          {{/if}}
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+
+    <!-- Total -->
+    <div class="total-row">
+      <div class="total-box">
+        <div class="label">Grand Total</div>
+        <div class="amount">{{#if hasAllPrices}}${{total}}{{else}}TBD{{/if}}</div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    {{#if notes}}
+    <div class="notes-box"><strong>Notes:</strong> {{notes}}</div>
+    {{/if}}
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    This quote is valid until <strong>{{validUntil}}</strong>.<br/>
+    Prices are subject to change after the validity date.<br/>
+    <br/>
+    Generated by <strong>{{platformName}}</strong>
+  </div>
+
+</div>
+</body>
+</html>

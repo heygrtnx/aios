@@ -8,10 +8,13 @@ import { systemPrompt as SYSTEM_PROMPT } from './sp';
 import { createDbTool } from './tools/db.tool';
 import { createMediaTool } from './tools/media.tool';
 import { createSheetUploadTool } from './tools/sheet.tool';
+import { createRfqTool } from './tools/rfq.tool';
+import { createSendRfqEmailTool } from './tools/send-rfq-email.tool';
 import { webSearch } from '@valyu/ai-sdk';
 import { PrismaService } from '../prisma/prisma.service';
-import { GoogleSheetsService } from '../google/sheet/sheet.service';
 import { RedisService } from '../redis/redis.service';
+import { GoogleSheetsService } from '../google/sheet/sheet.service';
+import { SendMailsService } from '../email/sendMail.service';
 
 const DEFAULT_AI_MODEL = 'openai/gpt-4o';
 
@@ -37,8 +40,9 @@ export class AiService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly googleSheets: GoogleSheetsService,
     private readonly redis: RedisService,
+    private readonly sheets: GoogleSheetsService,
+    private readonly mailer: SendMailsService,
   ) {
     this.gateway = createGateway({
       apiKey: this.configService.get<string>('AI_GATEWAY_API_KEY'),
@@ -51,11 +55,9 @@ export class AiService {
     const tools: Record<string, any> = {
       database: createDbTool(this.prisma),
       media: createMediaTool(model),
-      uploadToSheet: createSheetUploadTool(
-        this.configService,
-        this.googleSheets,
-        this.redis,
-      ),
+      uploadToSheet: createSheetUploadTool(this.configService, this.redis),
+      processRfq: createRfqTool(this.configService, this.redis, this.sheets),
+      sendRfqEmail: createSendRfqEmailTool(this.configService, this.redis, this.mailer),
     };
     if (this.isWebSearchEnabled()) {
       tools.webSearch = webSearch({ maxNumResults: 5, fastMode: true });
@@ -103,6 +105,23 @@ export class AiService {
     }
   }
 
+  private static TEXT_MIME_TYPES = new Set([
+    'text/csv',
+    'text/plain',
+    'text/markdown',
+    'text/html',
+    'text/xml',
+    'application/json',
+    'application/xml',
+  ]);
+
+  private isTextBasedMime(mimeType: string): boolean {
+    return (
+      mimeType.startsWith('text/') ||
+      AiService.TEXT_MIME_TYPES.has(mimeType)
+    );
+  }
+
   private buildSdkMessages(messages: ChatMessage[]): any[] {
     return messages.map((msg) => {
       if (
@@ -118,6 +137,12 @@ export class AiService {
               type: 'image',
               image: new Uint8Array(bytes),
               mimeType: att.mimeType,
+            });
+          } else if (this.isTextBasedMime(att.mimeType)) {
+            const textContent = bytes.toString('utf-8');
+            parts.push({
+              type: 'text',
+              text: `[File: ${att.name}]\n${textContent}`,
             });
           } else {
             parts.push({

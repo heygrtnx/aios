@@ -6,6 +6,8 @@ import {
   Headers,
   HttpCode,
   Logger,
+  NotFoundException,
+  Param,
   Post,
   Query,
   Req,
@@ -189,6 +191,26 @@ export class ChatController {
     await this.chatService.handleProductUpload(file, emit, history);
 
     res.end();
+  }
+
+  @Get('rfq/:quoteNumber/download')
+  @Public()
+  @ApiOperation({ summary: 'Download a quote as a printable HTML page' })
+  async downloadQuote(
+    @Param('quoteNumber') quoteNumber: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const html = await this.chatService.downloadQuote(quoteNumber);
+    if (!html) throw new NotFoundException('Quote not found or has expired.');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  }
+
+  @Post('rfq/followups')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Process due RFQ follow-up emails (call from a daily cron)' })
+  async triggerFollowups() {
+    return this.chatService.triggerFollowups();
   }
 
   @Get('webhook')

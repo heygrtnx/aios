@@ -1422,7 +1422,7 @@
               type="file"
               id="file-input"
               multiple
-              accept="image/*,.pdf,.txt,.csv,.md,.html,.htm,.doc,.docx,.json,.xml"
+              accept="image/*,.pdf,.txt,.csv,.md,.html,.htm,.doc,.docx,.json,.xml,.xlsx,.xls"
               style="display:none"
             />
             <div class="input-card" id="input-card">
@@ -1536,7 +1536,7 @@
       var fileAttachments = [];
       const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
       const ACCEPTED_IMAGES = new Set(['image/jpeg','image/png','image/gif','image/webp','image/bmp','image/svg+xml']);
-      const ACCEPTED_DOCS = new Set(['application/pdf','text/plain','text/csv','text/markdown','text/html','application/json','application/xml','text/xml']);
+      const ACCEPTED_DOCS = new Set(['application/pdf','text/plain','text/csv','text/markdown','text/html','application/json','application/xml','text/xml','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel']);
 
       // ── Theme ──────────────────────────────────────
       const savedTheme = localStorage.getItem('aios-theme') || 'dark';
@@ -1898,7 +1898,7 @@
           var mime = file.type || 'application/octet-stream';
           if (!ACCEPTED_IMAGES.has(mime) && !ACCEPTED_DOCS.has(mime)) {
             var ext = file.name.split('.').pop().toLowerCase();
-            var extMap = { pdf:'application/pdf', txt:'text/plain', csv:'text/csv', md:'text/markdown', html:'text/html', htm:'text/html', json:'application/json', xml:'application/xml' };
+            var extMap = { pdf:'application/pdf', txt:'text/plain', csv:'text/csv', md:'text/markdown', html:'text/html', htm:'text/html', json:'application/json', xml:'application/xml', xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls:'application/vnd.ms-excel' };
             if (extMap[ext]) mime = extMap[ext];
             else { alert('Unsupported file type: ' + file.name); continue; }
           }
@@ -2230,9 +2230,12 @@
           let text = '';
           let textEl = null;
           let streamError = false;
+          let effectiveUserContent = null;
 
           const handleEvt = (evt) => {
-            if (evt.t === 'searching') {
+            if (evt.t === 'user_content') {
+              effectiveUserContent = evt.content;
+            } else if (evt.t === 'searching') {
               aiMsg.showSearch();
               setStatus('searching');
             } else if (evt.t === 'search_done') {
@@ -2282,8 +2285,9 @@
             );
             setStatus('error');
           } else if (text.length > 0) {
-            // Save exchange to in-session history so future messages have context
-            conversationHistory.push({ role: 'user', content: prompt });
+            // Save exchange to in-session history so future messages have context.
+            // Use effectiveUserContent if the backend modified the prompt (e.g. product upload).
+            conversationHistory.push({ role: 'user', content: effectiveUserContent || prompt });
             conversationHistory.push({ role: 'assistant', content: text });
             // Keep history bounded
             if (conversationHistory.length > HISTORY_LIMIT * 2) {
