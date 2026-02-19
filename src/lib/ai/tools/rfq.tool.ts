@@ -102,15 +102,36 @@ export function createRfqTool(
         const quoteDate = isoDate();
         const validUntil = isoDate(30 * 24 * 60 * 60 * 1000);
 
+        // ── Auto-fill prices from uploaded product catalog ────────────────────
+        const catalog: Record<string, { price: number | null; unit: string }> | null =
+          await redis.get('product-catalog');
+
         let hasAllPrices = true;
         let subtotal = 0;
+        const missingSkus: string[] = [];
 
         const lineItems: RfqLineItem[] = items.map((item) => {
-          const unitPrice = item.unitPrice ?? null;
+          const skuKey = item.sku.trim().toUpperCase();
+          const catalogEntry = catalog?.[skuKey] ?? null;
+
+          // Priority: explicit price from AI > catalog price > TBD
+          // Treat 0 as "not provided" — AI sometimes passes 0 for unknown prices
+          const unitPrice =
+            item.unitPrice != null && item.unitPrice > 0
+              ? item.unitPrice
+              : (catalogEntry?.price ?? null);
+
+          const unit = item.unit ?? catalogEntry?.unit ?? 'pcs';
           const lineTotal = unitPrice != null ? item.qty * unitPrice : null;
-          if (unitPrice == null) hasAllPrices = false;
-          else subtotal += lineTotal!;
-          return { sku: item.sku, qty: item.qty, unit: item.unit ?? 'pcs', unitPrice, lineTotal };
+
+          if (unitPrice == null) {
+            hasAllPrices = false;
+            missingSkus.push(item.sku);
+          } else {
+            subtotal += lineTotal!;
+          }
+
+          return { sku: item.sku, qty: item.qty, unit, unitPrice, lineTotal };
         });
 
         const total = hasAllPrices ? subtotal.toFixed(2) : 'TBD';
@@ -198,6 +219,8 @@ export function createRfqTool(
           downloadUrl,
           loggedToSheets,
           contactEmail: contactEmail ?? null,
+          missingPriceSkus: missingSkus, // SKUs not found in catalog
+          catalogUsed: !!catalog,
         };
       } catch (err: any) {
         return {

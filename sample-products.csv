@@ -1,11 +1,101 @@
-Name,Price,SKU,Category,Stock,Description
-Wireless Bluetooth Earbuds,12999,WBE-001,Electronics,150,Noise-cancelling earbuds with 24hr battery life
-USB-C Fast Charger 65W,8500,UFC-002,Electronics,300,GaN charger with 3 ports compatible with laptops and phones
-Leather Laptop Sleeve 15",15500,LLS-003,Accessories,85,Premium cowhide leather sleeve fits up to 15.6" laptops
-Ergonomic Office Chair,95000,EOC-004,Furniture,40,Adjustable lumbar support with breathable mesh back
-Standing Desk Converter,67500,SDC-005,Furniture,25,Height-adjustable sit-stand desk riser with keyboard tray
-Bamboo Wireless Keyboard,18000,BWK-006,Electronics,200,Eco-friendly bamboo body with whisper-quiet keys
-Smart Water Bottle 750ml,9500,SWB-007,Lifestyle,500,LED temperature display with hydration reminders
-Portable Power Bank 20000mAh,14500,PPB-008,Electronics,180,Dual USB-C output with pass-through charging
-Noise Machine & Night Light,11000,NML-009,Lifestyle,120,32 soothing sounds with warm amber night light
-Webcam 4K with Ring Light,22000,WRL-010,Electronics,90,Auto-focus 4K webcam with adjustable ring light and privacy cover
+Name,Price,SKU,Category,Stock,Unit,Description
+Wireless Bluetooth Earbuds,12999,WBE-001,Electronics,150,pcs,Noise-cancelling earbuds with 24hr battery life
+USB-C Fast Charger 65W,8500,UFC-002,Electronics,300,pcs,GaN charger with 3 ports compatible with laptops and phones
+Leather Laptop Sleeve 15",15500,LLS-003,Accessories,85,pcs,Premium cowhide leather sleeve fits up to 15.6" laptops
+Ergonomic Office Chair,95000,EOC-004,Furniture,40,pcs,Adjustable lumbar support with breathable mesh back
+Standing Desk Converter,67500,SDC-005,Furniture,25,pcs,Height-adjustable sit-stand desk riser with keyboard tray
+Bamboo Wireless Keyboard,18000,BWK-006,Electronics,200,pcs,Eco-friendly bamboo body with whisper-quiet keys
+Smart Water Bottle 750ml,9500,SWB-007,Lifestyle,500,pcs,LED temperature display with hydration reminders
+Portable Power Bank 20000mAh,14500,PPB-008,Electronics,180,pcs,Dual USB-C output with pass-through charging
+Noise Machine & Night Light,11000,NML-009,Lifestyle,120,pcs,32 soothing sounds with warm amber night light
+Webcam 4K with Ring Light,22000,WRL-010,Electronics,90,pcs,Auto-focus 4K webcam with adjustable ring light and privacy cover
+Mechanical Gaming Keyboard,35000,MGK-011,Gaming,75,pcs,RGB backlit mechanical switches with anti-ghosting
+Gaming Mouse 16000 DPI,19500,GM-012,Gaming,110,pcs,Optical sensor with 7 programmable buttons
+Gaming Headset 7.1 Surround,28000,GHS-013,Gaming,60,pcs,Virtual surround sound with noise-cancelling mic
+27" Curved Monitor 144Hz,185000,CM-014,Electronics,30,pcs,QHD IPS panel with 1ms response time
+HDMI 2.1 Cable 2m,3500,HDM-015,Accessories,600,pcs,8K@60Hz certified braided cable
+USB Hub 7-Port,7200,UHB-016,Accessories,250,pcs,USB 3.0 with individual power switches
+Laptop Stand Adjustable,12000,LSA-017,Accessories,190,pcs,Aluminium alloy with 6 height settings
+Wireless Mouse Ergonomic,11500,WME-018,Electronics,320,pcs,Silent click with 18-month battery life
+Smart Desk Lamp LED,14000,SDL-019,Furniture,140,pcs,Touch dimmer with USB charging port and colour temperature control
+Cable Management Box,4500,CMB-020,Accessories,400,pcs,Wooden finish box hides power strips and cables
+Office Desk 120cm,145000,OD-021,Furniture,20,pcs,Solid oak top with steel frame and 2 drawers
+Mesh Back Office Chair,78000,MOC-022,Furniture,35,pcs,Breathable mesh with 4D armrest and lumbar support
+Whiteboard 120x90cm,32000,WB-023,Office Supplies,50,pcs,Magnetic surface with aluminium frame and tray
+Stapler Heavy Duty,5500,SHD-024,Office Supplies,300,pcs,Handles up to 100 sheets with jam-proof mechanism
+Ballpoint Pen Box Blue,2800,BPB-025,Office Supplies,1000,box,Box of 50 medium-tip ballpoint pens
+A4 Printer Paper 80gsm,4200,APP-026,Office Supplies,800,ream,500 sheets per ream bright white multipurpose paper
+Sticky Notes Multicolour,1800,SN-027,Office Supplies,700,pack,Pack of 6 pads assorted neon colours 100 sheets each
+Filing Cabinet 4-Drawer,88000,FC-028,Furniture,18,pcs,Steel body with central lock and anti-tip mechanism
+Shredder 12-Sheet,42000,SHR-029,Office Supplies,45,pcs,Cross-cut shredder with 20L bin auto-reverse function
+Label Maker Wireless,17500,LMW-030,Office Supplies,80,pcs,Bluetooth label printer compatible with iOS and Android
+Bottled Water 75cl,350,BW-031,Food & Beverage,5000,pcs,Still natural mineral water chilled
+Sparkling Water 50cl,450,SW-032,Food & Beverage,3000,pcs,Carbonated natural spring water
+Energy Drink 250ml,900,ED-033,Food & Beverage,2000,pcs,Caffeine + B-vitamins tropical flavour
+Green Tea Bags Box,3200,GTB-034,Food & Beverage,500,box,Box of 100 premium green tea bags individually wrapped
+Instant Coffee Jar 200g,7500,ICJ-035,Food & Beverage,400,pcs,Freeze-dried arabica blend smooth and rich
+Coffee Capsules Box,12000,CC-036,Food & Beverage,350,box,Box of 50 compatible with Nespresso machines
+Protein Bar Box,18000,PBB-037,Food & Beverage,200,box,Box of 12 bars mixed flavours 20g protein each
+Granola Mix 1kg,8500,GM-038,Food & Beverage,300,kg,Oats seeds and dried fruit no added sugar
+Hand Sanitiser 500ml,2500,HS-039,Health & Safety,1500,pcs,70% alcohol gel with aloe vera moisturiser
+Face Mask Box,6500,FM-040,Health & Safety,800,box,Box of 50 3-ply disposable surgical masks
+First Aid Kit Standard,14500,FAK-041,Health & Safety,120,pcs,85-piece kit in hard carry case OSHA compliant
+Fire Extinguisher 2kg,22000,FE-042,Health & Safety,60,pcs,Dry powder ABC class wall-mount bracket included
+Safety Gloves Cut-Resistant,3800,SG-043,Health & Safety,500,pair,Level 5 protection anti-slip palm coating size M-XL
+Safety Boots Steel Toe,28000,SB-044,Health & Safety,200,pair,EN ISO 20345 certified oil and slip resistant
+Hard Hat Construction,8500,HH-045,Health & Safety,300,pcs,ABS shell with 4-point suspension ANSI Z89.1 certified
+High-Vis Jacket,5500,HVJ-046,Health & Safety,400,pcs,Class 2 reflective strips sizes S to 3XL
+Safety Goggles Anti-Fog,2200,SGO-047,Health & Safety,600,pcs,Indirect vent wraparound clear polycarbonate lens
+Knee Pads Professional,6500,KP-048,Health & Safety,250,pair,Gel foam insert with adjustable velcro straps
+Earplugs Box,1500,EP-049,Health & Safety,1000,box,Box of 200 foam earplugs 33dB SNR
+Dust Mask N95 Box,9500,DM-050,Health & Safety,600,box,Box of 20 NIOSH-approved respirators with valve
+Printer Ink Cartridge Black,8500,PIB-051,Electronics,200,pcs,High-yield compatible with HP LaserJet series
+Printer Ink Cartridge Colour,11000,PIC-052,Electronics,150,pcs,Tri-colour compatible with Epson EcoTank series
+Toner Cartridge Black,19500,TCB-053,Electronics,90,pcs,High-yield 8000 pages compatible with Canon LBP series
+USB Flash Drive 64GB,4500,UFD-054,Electronics,500,pcs,USB 3.1 with read speed up to 200MB/s compact design
+External SSD 1TB,65000,SSD-055,Electronics,70,pcs,USB-C NVMe portable drive 1050MB/s read speed
+Ethernet Cable Cat6 5m,2800,EC-056,Accessories,700,pcs,Snagless RJ45 connectors UTP 1Gbps rated
+Wireless Access Point,35000,WAP-057,Electronics,55,pcs,Wi-Fi 6 AX1800 dual-band PoE compatible
+Network Switch 8-Port,28000,NS-058,Electronics,65,pcs,Gigabit unmanaged plug-and-play desktop switch
+UPS Battery Backup 650VA,42000,UPS-059,Electronics,40,pcs,Pure sine wave with LCD display 6 outlets
+Surge Protector 6-Outlet,7500,SP-060,Accessories,350,pcs,With USB charging ports and 2m braided cable
+Whiteboard Markers Set,2500,WBM-061,Office Supplies,600,set,Set of 8 assorted colours chisel tip low-odour ink
+Highlighters Set,1800,HL-062,Office Supplies,800,set,Set of 6 fluorescent colours smear-proof ink
+Scissors Heavy Duty,3200,SC-063,Office Supplies,400,pcs,Stainless steel blades with soft-grip handles
+Tape Dispenser Desktop,4500,TD-064,Office Supplies,300,pcs,With 3 rolls of clear tape included weighted base
+Correction Tape Pack,2200,CT-065,Office Supplies,500,pack,Pack of 5 instant dry 5mm x 8m each
+Binder Clips Assorted,1200,BC-066,Office Supplies,1000,pack,Pack of 50 mixed sizes 15mm 25mm and 32mm
+Ring Binder A4 4-Ring,3500,RB-067,Office Supplies,400,pcs,PVC cover with 4 D-rings holds 200 sheets
+Manila Folder A4,4800,MF-068,Office Supplies,600,pack,Pack of 50 kraft paper folders with tab labels
+Desk Organiser 5-Slot,8500,DO-069,Office Supplies,200,pcs,Bamboo desktop file and stationery organiser
+Calculator Scientific,12500,CS-070,Office Supplies,150,pcs,240 functions with solar and battery power
+Disinfectant Spray 1L,4500,DS-071,Cleaning,800,pcs,Hospital-grade multi-surface kills 99.9% of germs
+Microfibre Cloth Pack,3200,MC-072,Cleaning,1000,pack,Pack of 10 ultra-soft lint-free cloths 40x40cm
+Mop and Bucket Set,18500,MB-073,Cleaning,100,set,Spin mop with 360-degree rotation and wringer bucket
+Broom and Dustpan Set,7500,BD-074,Cleaning,200,set,Soft-bristle broom with long handle and clip-on dustpan
+Waste Bin 20L,5500,WB-075,Cleaning,300,pcs,Stainless steel pedal bin with removable inner bucket
+Trash Bags 90L Box,6500,TB-076,Cleaning,500,box,Box of 50 heavy-duty black refuse sacks tie handles
+Liquid Hand Soap 500ml,2800,LHS-077,Cleaning,600,pcs,Antibacterial lavender scent pump dispenser
+Toilet Roll 2-Ply,12000,TR-078,Cleaning,400,pack,Pack of 24 rolls 200 sheets each soft and strong
+Paper Towel Roll,8500,PT-079,Cleaning,500,pack,Pack of 12 jumbo rolls absorbent 2-ply white
+Air Freshener 300ml,3500,AF-080,Cleaning,700,pcs,Long-lasting aerosol fresh linen scent
+Folding Table 180x75cm,55000,FT-081,Furniture,30,pcs,Steel frame with HDPE top folds flat for storage
+Plastic Chair Stackable,8500,PC-082,Furniture,200,pcs,Reinforced polypropylene holds up to 150kg
+Bookshelf 5-Tier,62000,BS-083,Furniture,25,pcs,Solid pine with adjustable shelves 180cm height
+Reception Desk,285000,RD-084,Furniture,8,pcs,L-shaped with cable management and lockable drawer
+Visitor Chair Padded,35000,VC-085,Furniture,60,pcs,PU leather with chrome legs stackable design
+Conference Table 8-Seater,320000,CT-086,Furniture,5,pcs,MDF top with metal frame and cable port
+Locker 6-Door Steel,125000,LK-087,Furniture,15,pcs,Powder-coated steel with padlock hasps and number plates
+Coat Rack Freestanding,18000,CR-088,Furniture,80,pcs,8-hook chrome standing coat and umbrella rack
+Notice Board Cork 90x60cm,22000,NB-089,Office Supplies,50,pcs,Natural cork surface with aluminium frame and fixings
+Projector Screen 100",98000,PS-090,Electronics,20,pcs,Manual pull-down matte white 4:3 ratio with ceiling mount
+HDMI Splitter 4-Port,9500,HS-091,Electronics,120,pcs,4K@60Hz supports 4 displays simultaneously no power needed
+Bluetooth Speaker Portable,21000,BS-092,Electronics,95,pcs,IPX7 waterproof 20W output 24hr playtime
+Smart Plug Wi-Fi,5500,SP-093,Electronics,400,pcs,Voice control compatible works with Alexa and Google Home
+Extension Lead 4-Gang 2m,6500,EL-094,Accessories,350,pcs,With surge protection and individual switches
+Power Strip 6-Gang,8500,PR-095,Accessories,280,pcs,With USB ports and 3m braided cord child safety covers
+Thermal Label Printer,58000,TLP-096,Electronics,35,pcs,Direct thermal 4x6 inch labels USB and Bluetooth
+Barcode Scanner Wireless,42000,BCS-097,Electronics,45,pcs,1D/2D QR code reader 100m range USB receiver
+POS Receipt Printer,68000,PRP-098,Electronics,25,pcs,80mm thermal auto-cutter Ethernet and USB interface
+Cash Drawer,32000,CD-099,Electronics,40,pcs,5-bill 8-coin till RJ11 connection fits most POS printers
+Tablet Stand Adjustable,9500,TS-100,Accessories,160,pcs,Universal 360-degree rotation fits 7 to 13-inch tablets

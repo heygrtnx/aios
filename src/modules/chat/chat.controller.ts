@@ -6,7 +6,6 @@ import {
   Headers,
   HttpCode,
   Logger,
-  NotFoundException,
   Param,
   Post,
   Query,
@@ -201,7 +200,10 @@ export class ChatController {
     @Res() res: Response,
   ): Promise<void> {
     const html = await this.chatService.downloadQuote(quoteNumber);
-    if (!html) throw new NotFoundException('Quote not found or has expired.');
+    if (!html) {
+      res.status(404).json({ message: 'Quote not found or has expired.' });
+      return;
+    }
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   }

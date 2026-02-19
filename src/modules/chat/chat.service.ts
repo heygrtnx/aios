@@ -13,6 +13,14 @@ const HISTORY_LIMIT = 20;
 const HISTORY_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const SLACK_EVENT_DEDUP_TTL = 300; // 5 minutes
 const PRODUCT_UPLOAD_TTL = 60 * 60; // 1 hour
+const CATALOG_TTL = 60 * 60 * 24 * 30; // 30 days
+
+export type ProductCatalogEntry = {
+  name: string;
+  price: number | null;
+  unit: string;
+};
+export type ProductCatalog = Record<string, ProductCatalogEntry>;
 
 @Injectable()
 export class ChatService {
@@ -44,6 +52,76 @@ export class ChatService {
   }
 
   /**
+   * Detects which column index corresponds to a concept by checking common header names.
+   * Headers are normalized: lowercase, spaces/underscores removed.
+   */
+  private static detectColumnIndex(headers: string[], ...candidates: string[]): number {
+    const normalized = headers.map((h) =>
+      String(h).toLowerCase().replace(/[\s_\-]+/g, ''),
+    );
+    for (const c of candidates) {
+      const idx = normalized.indexOf(c);
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  }
+
+  /**
+   * Builds a SKU→{name, price, unit} lookup map from parsed product rows.
+   * Returns null if no usable SKU column is found.
+   */
+  static buildProductCatalog(rows: any[][]): ProductCatalog | null {
+    if (rows.length < 2) return null;
+    const headers = rows[0].map(String);
+
+    const skuIdx = ChatService.detectColumnIndex(
+      headers, 'sku', 'productid', 'itemcode', 'itemno', 'productcode',
+      'code', 'partno', 'article', 'ref', 'reference', 'id',
+    );
+    if (skuIdx === -1) return null;
+
+    const priceIdx = ChatService.detectColumnIndex(
+      headers, 'price', 'unitprice', 'sellingprice', 'cost', 'rate',
+      'amount', 'listprice', 'unitcost',
+    );
+    const nameIdx = ChatService.detectColumnIndex(
+      headers, 'name', 'productname', 'itemname', 'description', 'title', 'label',
+    );
+    const unitIdx = ChatService.detectColumnIndex(
+      headers, 'unit', 'uom', 'unitofmeasure', 'measure',
+    );
+
+    const catalog: ProductCatalog = {};
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const sku = String(row[skuIdx] ?? '').trim();
+      if (!sku) continue;
+
+      const rawPrice = priceIdx !== -1 ? row[priceIdx] : null;
+      const price =
+        rawPrice !== null && rawPrice !== '' && !isNaN(Number(rawPrice))
+          ? Number(rawPrice)
+          : null;
+
+      catalog[sku.toUpperCase()] = {
+        name: nameIdx !== -1 ? String(row[nameIdx] ?? '').trim() : sku,
+        price,
+        unit: unitIdx !== -1 ? String(row[unitIdx] ?? 'pcs').trim() : 'pcs',
+      };
+    }
+
+    return Object.keys(catalog).length > 0 ? catalog : null;
+  }
+
+  /** Saves (or overwrites) the product catalog to Redis. */
+  private async saveProductCatalog(rows: any[][]): Promise<void> {
+    const catalog = ChatService.buildProductCatalog(rows);
+    if (!catalog) return;
+    await this.redisService.set('product-catalog', catalog, CATALOG_TTL);
+    this.logger.log(`Product catalog saved — ${Object.keys(catalog).length} SKUs`);
+  }
+
+  /**
    * Returns an existing upload key if identical data is already stored,
    * otherwise creates a new one.
    */
@@ -59,6 +137,13 @@ export class ChatService {
         `product-upload:${existingKey}`,
       );
       if (existingData) {
+        // Always refresh catalog — it may have expired even if the upload key hasn't
+        const catalogExists = await this.redisService.get('product-catalog');
+        if (!catalogExists) {
+          this.saveProductCatalog(rows).catch((e) =>
+            this.logger.warn('Catalog refresh failed', e?.message),
+          );
+        }
         return { uploadKey: existingKey, alreadyExists: true };
       }
     }
@@ -70,6 +155,11 @@ export class ChatService {
       PRODUCT_UPLOAD_TTL,
     );
     await this.redisService.set(hashKey, uploadKey, PRODUCT_UPLOAD_TTL);
+
+    // Persist price catalog for RFQ auto-lookup (non-blocking)
+    this.saveProductCatalog(rows).catch((e) =>
+      this.logger.warn('Catalog save failed', e?.message),
+    );
 
     return { uploadKey, alreadyExists: false };
   }
