@@ -55,11 +55,11 @@ cp .env.example .env
 | `DOMAIN_CHAT` | No | When `API_KEY` is not set: comma-separated list of hostnames that get a per-day-per-IP limit (request `Host` must match one). Only these domains are limited; all other domains are **unlimited**. Omit for unlimited everywhere. |
 | `PROMPTS_PER_DAY_CHAT` | No | For domains listed in `DOMAIN_CHAT`, this many prompts per day per IP (default **5**). Ignored if `DOMAIN_CHAT` is not set. |
 | `PLATFORM_NAME` | No | Name used in API docs title (e.g. your product name) |
-| `PLATFORM_URL` | No | Main app URL (for API docs) |
+| `PLATFORM_URL` | No | Main app URL (for API docs). Also used for branding: copyright is shown on localhost and when the request host is the same as or a subdomain of this URL’s host; otherwise it is hidden. |
 | `DEVELOPMENT_URL` | No | Dev server host (for API docs) |
 | `PRODUCTION_URL` | No | Production host (for API docs) |
-| `AUTHOR_NAME` | No | Author handle shown in the demo UI header ("by X") and footer; omit to hide both |
-| `AUTHOR_URL` | No | URL for the footer author link; only used when `AUTHOR_NAME` is set |
+| `AUTHOR_NAME` | No | Author handle shown in the demo UI header ("by X") and footer when the request is from `PLATFORM_URL` or a subdomain; omit to hide both |
+| `AUTHOR_URL` | No | URL for the footer author link; only used when `AUTHOR_NAME` is set and branding is shown |
 | `CORS_ORIGINS` | No | Comma-separated list of extra allowed origins (e.g. `https://app.com,https://other.com`). All `http(s)://localhost` and `http(s)://127.0.0.1` ports are always allowed by default. |
 
 ## Database
@@ -96,7 +96,7 @@ pnpm run start:prod
 - **API**: `http://localhost:3000/v1` (all API routes use the `v1` prefix)
 - **API docs (Scalar)**: `http://localhost:3000/v1/docs`
 
-On startup the server logs `Unlimited prompts: true` when `DOMAIN_CHAT` is not set (no per-day limit), or `Unlimited prompts: false` when `DOMAIN_CHAT` is set (limit applied only to listed domain(s); other domains remain unlimited).
+On startup the server logs `Unlimited prompts: true/false` and `Copyright: enabled/disabled` (enabled when `AUTHOR_NAME` is set; copyright is always shown on localhost and on `PLATFORM_URL` or its subdomains).
 
 ## Run tests
 
@@ -114,7 +114,7 @@ pnpm run test:cov
 ## API overview
 
 - **Server** – `GET /v1` – Health / hello
-- **Branding** – `GET /v1/branding` – Returns `{ authorName, authorUrl }` from env; used by the demo UI to hydrate the header and footer
+- **Branding** – `GET /v1/branding` – Returns `{ authorName, authorUrl }` on localhost or when the request host is the same as or a subdomain of `PLATFORM_URL`; otherwise returns nulls (copyright hidden). Used by the demo UI to hydrate the header and footer.
 - **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns AI-generated text (and can use web search internally)
 - **Expose (stream)** – `POST /v1/expose/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the AI response as `text/plain` with chunked transfer encoding
 

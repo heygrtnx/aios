@@ -113,9 +113,7 @@ async function bootstrap() {
       `API Key Auth: ${apiKeyEnabled ? 'ENABLED (x-api-key header required)' : 'DISABLED (open access)'}`,
     );
     console.log(`Unlimited prompts: ${unlimitedPrompts}`);
-    console.log(
-      `Branding: ${authorName ? `ACTIVE (${authorName}${authorUrl ? ` — ${authorUrl}` : ''})` : 'DISABLED (AUTHOR_NAME not set)'}`,
-    );
+    console.log(`Copyright: ${authorName ? 'enabled' : 'disabled'}`);
   } catch (err) {
     console.error('Error starting server', err);
   }

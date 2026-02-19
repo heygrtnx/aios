@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -13,7 +14,8 @@ export class AppController {
   }
 
   @Get('branding')
-  getBranding(): { authorName: string | null; authorUrl: string | null } {
-    return this.appService.getBranding();
+  getBranding(@Req() req: Request): { authorName: string | null; authorUrl: string | null } {
+    const host = req.get('Host');
+    return this.appService.getBranding(host ?? undefined);
   }
 }
