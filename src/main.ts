@@ -88,7 +88,7 @@ async function bootstrap() {
       'Authorization',
     )
     .addTag('Server', 'Endpoint for Server functions')
-    .addTag('Expose', 'Endpoint for Expose functions')
+    .addTag('Chat', 'Endpoint for Chat functions')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerOptions);

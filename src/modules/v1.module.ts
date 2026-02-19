@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ExposeModule } from './expose/expose.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [ExposeModule],
+  imports: [ChatModule],
 })
 export class V1Module {}
