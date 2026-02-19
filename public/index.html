@@ -1223,7 +1223,12 @@
     </main>
 
     <script>
-      marked.use({ breaks: true, gfm: true });
+      const _linkRenderer = new marked.Renderer();
+      _linkRenderer.link = function ({ href, title, text }) {
+        const t = title ? ` title="${title}"` : '';
+        return `<a href="${href}"${t} target="_blank" rel="noopener noreferrer">${text}</a>`;
+      };
+      marked.use({ renderer: _linkRenderer, breaks: true, gfm: true });
 
       // ── Conversation history (in-memory for the current session) ───
       var conversationHistory = [];
