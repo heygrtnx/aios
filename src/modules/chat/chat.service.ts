@@ -2,9 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AiService } from 'src/lib/ai/ai.service';
 import { WhatsappService } from 'src/lib/whatsapp/wa.service';
 import { RedisService } from 'src/lib/redis/redis.service';
+import { SlackService } from 'src/lib/slack/slack.service';
 
 const HISTORY_LIMIT = 20;
 const HISTORY_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+const SLACK_EVENT_DEDUP_TTL = 300; // 5 minutes
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -16,6 +18,7 @@ export class ChatService {
     private readonly aiService: AiService,
     private readonly whatsappService: WhatsappService,
     private readonly redisService: RedisService,
+    private readonly slackService: SlackService,
   ) {}
 
   async generateResponse(prompt: string): Promise<string> {
@@ -134,5 +137,59 @@ export class ChatService {
 
     // Send reply
     await this.whatsappService.sendMessage(phoneNumber, messageID, aiResponse);
+  }
+
+  handleSlackChallenge(challenge: string): { challenge: string } {
+    return { challenge };
+  }
+
+  async handleSlackEvent(body: any): Promise<void> {
+    const event = body.event;
+
+    if (!event || event.bot_id || event.subtype) return;
+    if (event.type !== 'app_mention' && event.type !== 'message') return;
+
+    const eventId: string = body.event_id;
+    if (eventId) {
+      const dedupKey = `slack:event:${eventId}`;
+      const seen = await this.redisService.get(dedupKey);
+      if (seen) {
+        this.logger.log(`Duplicate Slack event ${eventId}, skipping`);
+        return;
+      }
+      await this.redisService.set(dedupKey, '1', SLACK_EVENT_DEDUP_TTL);
+    }
+
+    const userText: string = (event.text ?? '')
+      .replace(/<@[A-Z0-9]+>/g, '')
+      .trim();
+
+    if (!userText) return;
+
+    const channel: string = event.channel;
+    const threadTs: string = event.thread_ts ?? event.ts;
+    const userId: string = event.user;
+
+    this.logger.log(`[Slack] ${userId} in ${channel}: "${userText}"`);
+
+    const historyKey = `slack:history:${channel}:${userId}`;
+    const history: ChatMessage[] =
+      (await this.redisService.get(historyKey)) ?? [];
+
+    const aiMessages: ChatMessage[] = [
+      ...history.slice(-HISTORY_LIMIT),
+      { role: 'user', content: userText },
+    ];
+
+    const aiResponse =
+      await this.aiService.generateResponseWithHistory(aiMessages);
+
+    await this.redisService.set(
+      historyKey,
+      [...aiMessages, { role: 'assistant', content: aiResponse }],
+      HISTORY_TTL_SECONDS,
+    );
+
+    await this.slackService.sendMessage(channel, aiResponse, threadTs);
   }
 }

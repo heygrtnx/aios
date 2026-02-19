@@ -4,11 +4,13 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 
 ## Features
 
-- **AI chat endpoint** – `POST /v1/expose/prompt` returns a complete AI-generated text response
-- **Streaming endpoint** – `POST /v1/expose/prompt/stream` streams the AI response as SSE (`text/event-stream`); emits `searching` → `search_done` → `text` delta events → `done`
+- **AI chat endpoint** – `POST /v1/chat/prompt` returns a complete AI-generated text response
+- **Streaming endpoint** – `POST /v1/chat/prompt/stream` streams the AI response as SSE (`text/event-stream`); emits `searching` → `search_done` → `text` delta events → `done`
 - **Pre-response web search** – When `VALYU_API_KEY` is set, the server searches the web *before* calling the AI and injects the results as context; powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk)
 - **Configurable AI** – Uses [Vercel AI SDK v6](https://sdk.vercel.ai/) with `@ai-sdk/gateway`; model and API key via env
 - **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access: only domains listed in `DOMAIN_CHAT` (one or more, comma-separated) have a per-day-per-IP limit (default **5**, or `PROMPTS_PER_DAY_CHAT`); all other domains are **unlimited**. Omit `DOMAIN_CHAT` for unlimited prompts everywhere.
+- **WhatsApp bot** – Connect a WhatsApp Cloud API app to receive and reply to messages; per-user conversation history stored in Redis; read receipts and typing indicators
+- **Slack bot** – Connect a Slack app to receive and reply to `app_mention` and direct messages; per-user conversation history stored in Redis; request signature verification; event deduplication
 - **Demo page** – Root URL serves a streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line, paste-to-attachment for long text
 - **API docs** – [Scalar](https://scalar.com/) API reference at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
@@ -62,6 +64,12 @@ cp .env.example .env
 | `AUTHOR_NAME` | No | Author handle shown in the demo UI header ("by X") and footer when the request is from `PLATFORM_URL` or a subdomain; omit to hide both |
 | `AUTHOR_URL` | No | URL for the footer author link; only used when `AUTHOR_NAME` is set and branding is shown |
 | `CORS_ORIGINS` | No | Comma-separated list of extra allowed origins (e.g. `https://app.com,https://other.com`). All `http(s)://localhost` and `http(s)://127.0.0.1` ports are always allowed by default. |
+| `SLACK_BOT_TOKEN` | No | Slack bot OAuth token (starts with `xoxb-`). Required for the Slack bot to send messages. |
+| `SLACK_SIGNING_SECRET` | No | Slack app signing secret. Used to verify that incoming webhook requests originate from Slack. Verification is skipped when unset (not recommended in production). |
+| `WHATSAPP_CLOUD_API_VERSION` | No | WhatsApp Cloud API version (e.g. `v17.0`). Required for the WhatsApp bot. |
+| `WHATSAPP_CLOUD_API_PHONE_NUMBER_ID` | No | Phone number ID from your Meta app dashboard. Required for the WhatsApp bot. |
+| `WHATSAPP_CLOUD_API_ACCESS_TOKEN` | No | Permanent or temporary access token from your Meta app. Required for the WhatsApp bot. |
+| `WHATSAPP_CLOUD_API_WEBHOOK_VERIFICATION_TOKEN` | No | Token you define and enter in the Meta webhook config to verify the subscription challenge. |
 
 ## Database
 
@@ -116,8 +124,11 @@ pnpm run test:cov
 
 - **Server** – `GET /v1` – Health / hello
 - **Branding** – `GET /v1/branding` – Returns `{ authorName, authorUrl }` on localhost or when the request host is the same as or a subdomain of `PLATFORM_URL`; otherwise returns nulls (copyright hidden). Used by the demo UI to hydrate the header and footer.
-- **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns a complete AI-generated text response
-- **Expose (stream)** – `POST /v1/expose/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the response as `text/event-stream` SSE
+- **Chat** – `POST /v1/chat/prompt` – Body: `{ "prompt": "string" }` – Returns a complete AI-generated text response
+- **Chat (stream)** – `POST /v1/chat/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the response as `text/event-stream` SSE
+- **WhatsApp** – `GET /v1/chat/webhook` – Webhook verification challenge (Meta subscription setup)
+- **WhatsApp** – `POST /v1/chat/webhook` – Incoming WhatsApp messages
+- **Slack** – `POST /v1/chat/slack/events` – Slack Event API webhook; handles `url_verification` and `event_callback` (app_mention, message.im)
 
 ### SSE event types (streaming endpoint)
 
@@ -145,10 +156,12 @@ src/
 ├── lib/                 # Shared libs
 │   ├── ai/              # AI service, system prompt (sp.ts)
 │   ├── loggger/         # Custom logger
-│   └── prisma/          # Prisma service, seed
-├── middleware/          # Exception filter, API key guard, open-access limit guard
+│   ├── prisma/          # Prisma service, seed
+│   ├── slack/           # SlackService — send messages, verify request signatures
+│   └── whatsapp/        # WhatsappService — send messages, read receipts, typing indicator
+├── middleware/          # Exception filter, API key guard, open-access limit guard, decorators
 ├── modules/
-│   └── expose/          # Expose controller & service (prompt + stream)
+│   └── chat/            # Chat controller & service (prompt, stream, WhatsApp, Slack events)
 └── main.ts              # Bootstrap, static files, Scalar API docs, CORS, rate limit
 ```
 
@@ -167,6 +180,22 @@ To change the assistant’s personality and scope, edit the system prompt in `sr
 | `pnpm run seed` | Run Prisma seed script |
 | `pnpm run lint` | ESLint with fix |
 | `pnpm run format` | Prettier on `src` and `test` |
+
+## WhatsApp bot setup
+
+1. Create a Meta app at [developers.facebook.com](https://developers.facebook.com) and add the **WhatsApp** product.
+2. Under **WhatsApp > API Setup**, copy the **Phone Number ID** → `WHATSAPP_CLOUD_API_PHONE_NUMBER_ID` and generate a **Temporary Access Token** (or configure a permanent one via a System User) → `WHATSAPP_CLOUD_API_ACCESS_TOKEN`.
+3. Set `WHATSAPP_CLOUD_API_VERSION` to the API version shown in the dashboard (e.g. `v17.0`).
+4. Under **WhatsApp > Configuration**, set the webhook URL to `https://<your-host>/v1/chat/webhook`, choose a verify token of your own and set it as `WHATSAPP_CLOUD_API_WEBHOOK_VERIFICATION_TOKEN`, then subscribe to the `messages` field.
+5. Restart the server. The bot replies to incoming text messages with per-user conversation history persisted in Redis.
+
+## Slack bot setup
+
+1. Create a Slack app at [api.slack.com/apps](https://api.slack.com/apps).
+2. Under **OAuth & Permissions**, add the `chat:write` bot scope, then install the app to your workspace and copy the **Bot User OAuth Token** (`xoxb-…`) → `SLACK_BOT_TOKEN`.
+3. Under **Basic Information**, copy the **Signing Secret** → `SLACK_SIGNING_SECRET`.
+4. Under **Event Subscriptions**, enable events and set the Request URL to `https://<your-host>/v1/chat/slack/events`. Subscribe to the bot events `app_mention` and `message.im`.
+5. Restart the server. The bot replies to mentions in channels and direct messages, with per-user conversation history persisted in Redis.
 
 ## License
 

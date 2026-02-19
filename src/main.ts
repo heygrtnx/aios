@@ -33,6 +33,27 @@ async function bootstrap() {
   const authorName = configService.get<string>('AUTHOR_NAME');
   const authorUrl = configService.get<string>('AUTHOR_URL');
 
+  // Capture raw body for Slack request-signature verification.
+  // Must be registered BEFORE express.json() so the stream is still unconsumed.
+  app.use(
+    '/v1/chat/slack/events',
+    (req: any, _res: express.Response, next: express.NextFunction) => {
+      let rawBody = '';
+      req.on('data', (chunk: Buffer) => {
+        rawBody += chunk.toString('utf8');
+      });
+      req.on('end', () => {
+        req.rawBody = rawBody;
+        try {
+          req.body = JSON.parse(rawBody);
+        } catch {
+          req.body = {};
+        }
+        next();
+      });
+    },
+  );
+
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
