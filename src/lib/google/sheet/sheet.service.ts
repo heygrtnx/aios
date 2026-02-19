@@ -42,4 +42,20 @@ export class GoogleSheetsService {
       },
     });
   }
+
+  async batchAppend(sheetId: string, range: string, rows: any[][]) {
+    await this.sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: rows },
+    });
+  }
+
+  async clear(sheetId: string, range: string) {
+    await this.sheets.spreadsheets.values.clear({
+      spreadsheetId: sheetId,
+      range,
+    });
+  }
 }

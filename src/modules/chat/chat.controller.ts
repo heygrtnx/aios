@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -10,11 +11,19 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { ChatService } from './chat.service';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OpenAccessPromptLimitGuard } from '../../middleware/guards/open-access-prompt-limit.guard';
 import { SlackService } from 'src/lib/slack/slack.service';
 import { Public } from 'src/middleware/decorators/public.decorator';
@@ -104,6 +113,80 @@ export class ChatController {
       body.history,
       body.attachments,
     );
+
+    res.end();
+  }
+
+  @Post('products/upload')
+  @UseGuards(OpenAccessPromptLimitGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (
+          file.originalname.match(/\.(csv|json|xlsx|xls)$/i) ||
+          [
+            'text/csv',
+            'application/json',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+          ].includes(file.mimetype)
+        ) {
+          cb(null, true);
+        } else {
+          cb(
+            new BadRequestException(
+              'Only CSV, JSON, and Excel files are allowed',
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
+  @ApiOperation({ summary: 'Upload a product file for Google Sheet population' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        history: {
+          type: 'string',
+          description: 'JSON-stringified chat history array',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  async uploadProducts(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { history?: string },
+    @Res({ passthrough: false }) res: Response,
+  ): Promise<void> {
+    if (!file) {
+      res.status(400).json({ error: 'No file provided' });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const emit = (data: object) =>
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    let history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    if (body.history) {
+      try {
+        history = JSON.parse(body.history);
+      } catch {
+        /* ignore malformed history */
+      }
+    }
+
+    await this.chatService.handleProductUpload(file, emit, history);
 
     res.end();
   }

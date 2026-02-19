@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import * as XLSX from 'xlsx';
 import { AiService, ChatMessage, Attachment } from 'src/lib/ai/ai.service';
 import { WhatsappService } from 'src/lib/whatsapp/wa.service';
 import { RedisService } from 'src/lib/redis/redis.service';
@@ -7,6 +9,7 @@ import { SlackService } from 'src/lib/slack/slack.service';
 const HISTORY_LIMIT = 20;
 const HISTORY_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const SLACK_EVENT_DEDUP_TTL = 300; // 5 minutes
+const PRODUCT_UPLOAD_TTL = 60 * 60; // 1 hour
 
 @Injectable()
 export class ChatService {
@@ -90,6 +93,75 @@ export class ChatService {
       this.logger.error('Stream error', err?.stack ?? err);
       emit({ t: 'error', msg });
     }
+  }
+
+  async handleProductUpload(
+    file: { originalname: string; buffer: Buffer; mimetype: string },
+    emit: (data: object) => void,
+    history?: ChatMessage[],
+  ): Promise<void> {
+    const { rows, columns } = this.parseProductFile(file);
+
+    const uploadKey = randomUUID();
+    await this.redisService.set(
+      `product-upload:${uploadKey}`,
+      rows,
+      PRODUCT_UPLOAD_TTL,
+    );
+
+    emit({ t: 'upload', uploadKey, rowCount: rows.length, columns });
+
+    const preview = rows
+      .slice(0, Math.min(4, rows.length))
+      .map((r) => r.join(' | '))
+      .join('\n');
+
+    const prompt =
+      `[PRODUCT_UPLOAD]\n` +
+      `File: "${file.originalname}"\n` +
+      `Total rows: ${rows.length} (including header)\n` +
+      `Upload key: ${uploadKey}\n` +
+      `Columns: ${columns.join(', ')}\n\n` +
+      `Preview:\n${preview}\n\n` +
+      `I want to upload these products to Google Sheets.`;
+
+    await this.handleStreamPrompt(prompt, emit, history);
+  }
+
+  private parseProductFile(file: {
+    originalname: string;
+    buffer: Buffer;
+    mimetype: string;
+  }): { rows: any[][]; columns: string[] } {
+    const ext = file.originalname.split('.').pop()?.toLowerCase();
+
+    if (ext === 'json') {
+      const raw = JSON.parse(file.buffer.toString('utf-8'));
+      const arr: Record<string, any>[] = Array.isArray(raw) ? raw : [raw];
+      if (arr.length === 0) throw new Error('Empty JSON file');
+      const columns = Object.keys(arr[0]);
+      const rows = [
+        columns,
+        ...arr.map((item) => columns.map((col) => String(item[col] ?? ''))),
+      ];
+      return { rows, columns };
+    }
+
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+    }) as any[][];
+
+    const filtered = jsonData.filter((row) =>
+      row.some((cell) => cell !== null && cell !== undefined && cell !== ''),
+    );
+
+    if (filtered.length === 0) throw new Error('Empty file');
+
+    const columns = filtered[0].map(String);
+    return { rows: filtered, columns };
   }
 
   verifyWebhook(mode: string, token: string, challenge: string): string | null {

@@ -7,8 +7,11 @@ import { createGateway } from '@ai-sdk/gateway';
 import { systemPrompt as SYSTEM_PROMPT } from './sp';
 import { createDbTool } from './tools/db.tool';
 import { createMediaTool } from './tools/media.tool';
+import { createSheetUploadTool } from './tools/sheet.tool';
 import { webSearch } from '@valyu/ai-sdk';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleSheetsService } from '../google/sheet/sheet.service';
+import { RedisService } from '../redis/redis.service';
 
 const DEFAULT_AI_MODEL = 'openai/gpt-4o';
 
@@ -34,6 +37,8 @@ export class AiService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly googleSheets: GoogleSheetsService,
+    private readonly redis: RedisService,
   ) {
     this.gateway = createGateway({
       apiKey: this.configService.get<string>('AI_GATEWAY_API_KEY'),
@@ -46,6 +51,11 @@ export class AiService {
     const tools: Record<string, any> = {
       database: createDbTool(this.prisma),
       media: createMediaTool(model),
+      uploadToSheet: createSheetUploadTool(
+        this.configService,
+        this.googleSheets,
+        this.redis,
+      ),
     };
     if (this.isWebSearchEnabled()) {
       tools.webSearch = webSearch({ maxNumResults: 5, fastMode: true });

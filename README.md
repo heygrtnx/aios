@@ -11,6 +11,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access: only domains listed in `DOMAIN_CHAT` (one or more, comma-separated) have a per-day-per-IP limit (default **5**, or `PROMPTS_PER_DAY_CHAT`); all other domains are **unlimited**. Omit `DOMAIN_CHAT` for unlimited prompts everywhere.
 - **WhatsApp bot** – Connect a WhatsApp Cloud API app to receive and reply to messages; per-user conversation history stored in Redis; read receipts and typing indicators
 - **Slack bot** – Connect a Slack app to receive and reply to `app_mention` and direct messages; per-user conversation history stored in Redis; request signature verification; event deduplication
+- **Product upload → Google Sheets** – Upload a CSV, JSON, or Excel file of products; the AI asks for a secret confirmation code; on match, data is populated to a Google Sheet
 - **Demo page** – Root URL serves a streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line, paste-to-attachment for long text
 - **API docs** – [Scalar](https://scalar.com/) API reference at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
@@ -73,6 +74,10 @@ cp .env.example .env
 | `WHATSAPP_CLOUD_API_PHONE_NUMBER_ID` | No | Phone number ID from your Meta app dashboard. Required for the WhatsApp bot. |
 | `WHATSAPP_CLOUD_API_ACCESS_TOKEN` | No | Permanent or temporary access token from your Meta app. Required for the WhatsApp bot. |
 | `WHATSAPP_CLOUD_API_WEBHOOK_VERIFICATION_TOKEN` | No | Token you define and enter in the Meta webhook config to verify the subscription challenge. |
+| `GOOGLE_CLIENT_EMAIL` | No | Google service account email. Required for the product upload → Google Sheets feature. |
+| `GOOGLE_PRIVATE_KEY` | No | Google service account private key (PEM format, `\n` escaped). Required for the product upload → Google Sheets feature. |
+| `GOOGLE_SHEET_ID` | No | The spreadsheet ID from the Google Sheet URL. Required for the product upload → Google Sheets feature. |
+| `UPLOAD_SECRET_CODE` | No | Secret code the user must provide to confirm uploading products to Google Sheets. Required for the product upload → Google Sheets feature. |
 
 ## Database
 
@@ -134,6 +139,7 @@ pnpm run test:cov
 - **Slack (install)** – `GET /v1/chat/slack/add` – Redirects to the Slack OAuth install page (scopes driven by `SLACK_CLIENT_ID` + `SLACK_SCOPES` in env)
 - **Slack (OAuth callback)** – `GET /v1/chat/slack/events` – Slack OAuth install callback; exchanges the `code` param for an access token after a workspace installs the app
 - **Slack (events)** – `POST /v1/chat/slack/events` – Slack Event API webhook; handles `url_verification` and `event_callback` (app_mention, message.im)
+- **Product upload** – `POST /v1/chat/products/upload` – Multipart file upload (CSV, JSON, Excel); parses the file, stores data in Redis, and streams an AI response asking for the secret confirmation code. Follow up via the streaming endpoint to provide the code and trigger the Google Sheets write.
 
 ### SSE event types (streaming endpoint)
 
@@ -147,6 +153,7 @@ Each event is a JSON object on a `data:` line.
 | `reasoning` | `v` | Incremental reasoning delta (extended-thinking models) |
 | `tool_call` | `tool`, `args` | Model called an internal tool (e.g. `database`) |
 | `tool_result` | `tool` | Internal tool returned a result |
+| `upload` | `uploadKey`, `rowCount`, `columns` | Product file parsed and stored; emitted at the start of a product upload stream |
 | `done` | — | Stream complete |
 | `error` | `msg` | Stream-level error |
 
@@ -162,6 +169,8 @@ src/
 │   ├── ai/              # AI service, system prompt (sp.ts)
 │   ├── loggger/         # Custom logger
 │   ├── prisma/          # Prisma service, seed
+│   ├── google/sheet/    # GoogleSheetsService — read, append, batch write, clear
+│   ├── redis/           # RedisService — key-value store with TTL
 │   ├── slack/           # SlackService — send messages, verify request signatures
 │   └── whatsapp/        # WhatsappService — send messages, read receipts, typing indicator
 ├── middleware/          # Exception filter, API key guard, open-access limit guard, decorators
@@ -293,6 +302,114 @@ Go to **Manage Distribution** → **Submit to App Directory**. Slack reviews and
 | Same workspace | Search the bot by name → DM or invite to channel |
 | Other workspaces (private) | Share the install URL from Manage Distribution |
 | Public (anyone) | Submit to Slack App Directory |
+
+## Product upload → Google Sheets
+
+Upload a CSV, JSON, or Excel file of products and have the AI populate a Google Sheet — with a secret code confirmation step.
+
+### How it works
+
+1. **Upload** — `POST /v1/chat/products/upload` with a `file` field (multipart/form-data). Accepted formats: `.csv`, `.json`, `.xlsx`, `.xls` (max 10 MB).
+2. **AI asks for the code** — The server parses the file, stores the data in Redis (1-hour TTL), and streams an AI response that asks the user for a secret confirmation code.
+3. **User provides the code** — Send the code via `POST /v1/chat/prompt/stream` with the conversation history from step 2 so the AI has context.
+4. **AI uploads** — If the code matches `UPLOAD_SECRET_CODE` in env, the AI calls its `uploadToSheet` tool which clears the target sheet and writes all product rows. If the code is wrong, the AI asks the user to try again.
+
+### Step 1 — Create a Google Cloud Service Account
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com).
+2. Create a new project (or select an existing one).
+3. Navigate to **APIs & Services** → **Library** → search for **Google Sheets API** → click **Enable**.
+4. Go to **APIs & Services** → **Credentials** → **Create Credentials** → **Service Account**.
+5. Give it a name (e.g. `aios-sheets`) → click **Done**.
+6. Click the service account you just created → go to the **Keys** tab → **Add Key** → **Create new key** → choose **JSON** → click **Create**.
+7. A JSON file downloads. Open it and grab two values:
+   - `client_email` — looks like `aios-sheets@your-project.iam.gserviceaccount.com`
+   - `private_key` — the long PEM string starting with `-----BEGIN PRIVATE KEY-----`
+
+### Step 2 — Create a Google Sheet and share it with the service account
+
+1. Go to [sheets.google.com](https://sheets.google.com) and create a new spreadsheet (or open an existing one).
+2. Name it whatever you want (e.g. "Products").
+3. Copy the **spreadsheet ID** from the URL — it's the long string between `/d/` and `/edit`:
+
+```
+https://docs.google.com/spreadsheets/d/THIS_PART_IS_THE_ID/edit
+```
+
+4. Click the **Share** button in the top right.
+5. Paste the `client_email` from Step 1 into the email field.
+6. Set permission to **Editor**.
+7. Click **Send** (uncheck "Notify people" if you want).
+
+### Step 3 — Set the environment variables
+
+Add these to your `.env` file:
+
+```env
+GOOGLE_CLIENT_EMAIL=aios-sheets@your-project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...(your full key)...\n-----END PRIVATE KEY-----\n"
+GOOGLE_SHEET_ID=your-spreadsheet-id-from-step-2
+UPLOAD_SECRET_CODE=choose-a-secret-code
+```
+
+> **Important:** The `GOOGLE_PRIVATE_KEY` must be on **one line** with literal `\n` for newlines (exactly as it appears in the downloaded JSON file), wrapped in **double quotes**.
+
+> `UPLOAD_SECRET_CODE` is the code the AI will ask the user for before uploading. Choose any value you want.
+
+### Step 4 — Restart and test
+
+```bash
+pnpm run start:dev
+```
+
+| Variable | What to check |
+|----------|---------------|
+| `GOOGLE_CLIENT_EMAIL` | Real service account email from Step 1 |
+| `GOOGLE_PRIVATE_KEY` | Real private key from Step 1 (one line, `\n` for newlines, double-quoted) |
+| `GOOGLE_SHEET_ID` | Spreadsheet ID from Step 2 |
+| `UPLOAD_SECRET_CODE` | Any secret string you choose |
+
+### Example flow (cURL)
+
+```bash
+# 1. Upload the file
+curl -X POST https://<host>/v1/chat/products/upload \
+  -H "x-api-key: <your-api-key>" \
+  -F "file=@products.csv"
+
+# SSE stream returns:
+# data: {"t":"upload","uploadKey":"<uuid>","rowCount":50,"columns":["Name","Price","SKU"]}
+# data: {"t":"text","v":"I've got your 50 products ready. To upload them to Google Sheets, I'll need your secret confirmation code."}
+# data: {"t":"done"}
+
+# 2. Provide the code (include history from step 1)
+curl -X POST https://<host>/v1/chat/prompt/stream \
+  -H "x-api-key: <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "my-secret-code",
+    "history": [
+      {"role":"user","content":"[PRODUCT_UPLOAD]\nFile: \"products.csv\"\nTotal rows: 50 (including header)\nUpload key: <uuid>\nColumns: Name, Price, SKU\n\nPreview:\nName | Price | SKU\nWidget A | 9.99 | W001\nWidget B | 14.99 | W002\n\nI want to upload these products to Google Sheets."},
+      {"role":"assistant","content":"I've got your 50 products ready. To upload them to Google Sheets, I'll need your secret confirmation code."}
+    ]
+  }'
+
+# SSE stream returns:
+# data: {"t":"text","v":"Uploading now..."}
+# data: {"t":"text","v":" Done! 50 rows have been written to your Google Sheet."}
+# data: {"t":"done"}
+```
+
+### Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `Upload secret code is not configured` | Set `UPLOAD_SECRET_CODE` in `.env` and restart |
+| `Google Sheet ID is not configured` | Set `GOOGLE_SHEET_ID` in `.env` and restart |
+| `403` or permission error on Google Sheets | Make sure you shared the spreadsheet with the service account email as **Editor** (Step 2) |
+| `Upload session expired` | The parsed data is stored in Redis for 1 hour. Upload the file again if it expired |
+| `Invalid secret code` | The code you entered doesn't match `UPLOAD_SECRET_CODE` in `.env`. Try again with the correct one |
+| File rejected at upload | Only `.csv`, `.json`, `.xlsx`, and `.xls` files are accepted (max 10 MB) |
 
 ## License
 
