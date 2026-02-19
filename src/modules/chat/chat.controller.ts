@@ -48,11 +48,27 @@ export class ChatController {
   @ApiBody({
     schema: {
       type: 'object',
-      properties: { prompt: { type: 'string' } },
+      properties: {
+        prompt: { type: 'string' },
+        history: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              role: { type: 'string', enum: ['user', 'assistant'] },
+              content: { type: 'string' },
+            },
+          },
+        },
+      },
     },
   })
   async streamResponse(
-    @Body() body: { prompt: string },
+    @Body()
+    body: {
+      prompt: string;
+      history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    },
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -63,7 +79,7 @@ export class ChatController {
     const emit = (data: object) =>
       res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-    await this.chatService.handleStreamPrompt(body.prompt, emit);
+    await this.chatService.handleStreamPrompt(body.prompt, emit, body.history);
 
     res.end();
   }

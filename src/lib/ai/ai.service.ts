@@ -105,15 +105,17 @@ export class AiService {
     }
   }
 
-  /** Returns the full event stream for SSE. */
-  streamResponse(userPrompt: string): { fullStream: AsyncIterable<any> } {
+  /** Returns the full event stream for SSE with conversation history. */
+  streamResponseWithHistory(
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ): { fullStream: AsyncIterable<any> } {
     const model = this.getModel();
     this.logger.log(`Using model: ${model}`);
 
     const result = streamText({
       model: this.gateway(model),
       system: SYSTEM_PROMPT,
-      prompt: userPrompt,
+      messages,
       tools: this.getTools(),
       stopWhen: stepCountIs(5),
     });

@@ -28,8 +28,13 @@ export class ChatService {
   async handleStreamPrompt(
     prompt: string,
     emit: (data: object) => void,
+    history?: ChatMessage[],
   ): Promise<void> {
-    const { fullStream } = this.aiService.streamResponse(prompt);
+    const messages: ChatMessage[] = [
+      ...(history ?? []).slice(-HISTORY_LIMIT),
+      { role: 'user', content: prompt },
+    ];
+    const { fullStream } = this.aiService.streamResponseWithHistory(messages);
 
     let textDeltaCount = 0;
     try {
@@ -143,8 +148,20 @@ export class ChatService {
   async handleSlackEvent(body: any): Promise<void> {
     const event = body.event;
 
-    if (!event || event.bot_id || event.subtype) return;
-    if (event.type !== 'app_mention' && event.type !== 'message') return;
+    if (!event) {
+      this.logger.warn('[Slack] No event in payload');
+      return;
+    }
+    if (event.bot_id || event.subtype) {
+      this.logger.debug(
+        `[Slack] Ignoring event — bot_id: ${event.bot_id}, subtype: ${event.subtype}`,
+      );
+      return;
+    }
+    if (event.type !== 'app_mention' && event.type !== 'message') {
+      this.logger.debug(`[Slack] Ignoring unsupported event type: ${event.type}`);
+      return;
+    }
 
     const eventId: string = body.event_id;
     if (eventId) {
@@ -161,7 +178,10 @@ export class ChatService {
       .replace(/<@[A-Z0-9]+>/g, '')
       .trim();
 
-    if (!userText) return;
+    if (!userText) {
+      this.logger.debug('[Slack] Empty user text after stripping mentions, skipping');
+      return;
+    }
 
     const channel: string = event.channel;
     const threadTs: string = event.thread_ts ?? event.ts;
@@ -181,6 +201,11 @@ export class ChatService {
     const aiResponse =
       await this.aiService.generateResponseWithHistory(aiMessages);
 
+    if (!aiResponse?.trim()) {
+      this.logger.warn('[Slack] AI returned an empty response, skipping send');
+      return;
+    }
+
     await this.redisService.set(
       historyKey,
       [...aiMessages, { role: 'assistant', content: aiResponse }],
@@ -188,5 +213,6 @@ export class ChatService {
     );
 
     await this.slackService.sendMessage(channel, aiResponse, threadTs);
+    this.logger.log(`[Slack] Response sent to ${channel}`);
   }
 }

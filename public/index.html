@@ -1225,6 +1225,10 @@
     <script>
       marked.use({ breaks: true, gfm: true });
 
+      // ── Conversation history (in-memory for the current session) ───
+      var conversationHistory = [];
+      var HISTORY_LIMIT = 20;
+
       // ── Branding (hydrated from env via /v1/branding) ──────────────
       (async function loadBranding() {
         try {
@@ -1713,7 +1717,10 @@
           const res = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt }),
+            body: JSON.stringify({
+              prompt,
+              history: conversationHistory.slice(-HISTORY_LIMIT),
+            }),
           });
 
           if (!res.ok) {
@@ -1798,6 +1805,13 @@
             );
             setStatus('error');
           } else if (text.length > 0) {
+            // Save exchange to in-session history so future messages have context
+            conversationHistory.push({ role: 'user', content: prompt });
+            conversationHistory.push({ role: 'assistant', content: text });
+            // Keep history bounded
+            if (conversationHistory.length > HISTORY_LIMIT * 2) {
+              conversationHistory = conversationHistory.slice(-HISTORY_LIMIT * 2);
+            }
             aiMsg.finalize(text);
             setStatus('done');
           }
