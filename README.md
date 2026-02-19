@@ -1,14 +1,15 @@
 # AIOS
 
-A NestJS API backend that exposes an AI-powered assistant through a REST API. It uses the Vercel AI SDK with a configurable gateway, optional web search (Valyu), and PostgreSQL (Prisma). The system prompt and branding are customizable, so you can adapt it for your own product or use it as a starter for an AI-backed API.
+A NestJS API backend that exposes an AI-powered assistant through a REST API. It uses the Vercel AI SDK (v6) with a configurable gateway, optional pre-response web search (Valyu), and PostgreSQL (Prisma). The system prompt and branding are customizable, so you can adapt it for your own product or use it as a starter for an AI-backed API.
 
 ## Features
 
-- **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
-- **Streaming endpoint** – `POST /v1/expose/prompt/stream` to stream the AI response as `text/plain` (chunked)
-- **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
+- **AI chat endpoint** – `POST /v1/expose/prompt` returns a complete AI-generated text response
+- **Streaming endpoint** – `POST /v1/expose/prompt/stream` streams the AI response as SSE (`text/event-stream`); emits `searching` → `search_done` → `text` delta events → `done`
+- **Pre-response web search** – When `VALYU_API_KEY` is set, the server searches the web *before* calling the AI and injects the results as context; powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk)
+- **Configurable AI** – Uses [Vercel AI SDK v6](https://sdk.vercel.ai/) with `@ai-sdk/gateway`; model and API key via env
 - **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access: only domains listed in `DOMAIN_CHAT` (one or more, comma-separated) have a per-day-per-IP limit (default **5**, or `PROMPTS_PER_DAY_CHAT`); all other domains are **unlimited**. Omit `DOMAIN_CHAT` for unlimited prompts everywhere.
-- **Demo page** – Root URL serves a simple streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line.
+- **Demo page** – Root URL serves a streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line, paste-to-attachment for long text
 - **API docs** – [Scalar](https://scalar.com/) API reference at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
 - **Database** – PostgreSQL with Prisma (migrations, generate, seed, Studio)
@@ -18,8 +19,8 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 
 - [NestJS](https://nestjs.com/) 11
 - [Prisma](https://www.prisma.io/) 7 (PostgreSQL)
-- [Vercel AI SDK](https://sdk.vercel.ai/) with `@ai-sdk/gateway`
-- [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk) (`@valyu/ai-sdk`) for web search
+- [Vercel AI SDK v6](https://sdk.vercel.ai/) with `@ai-sdk/gateway`
+- [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk) (`@valyu/ai-sdk`) for pre-response web search
 - [Scalar](https://scalar.com/) + [NestJS Swagger](https://docs.nestjs.com/openapi/introduction) (OpenAPI)
 - TypeScript, class-validator, class-transformer, Winston
 
@@ -115,8 +116,23 @@ pnpm run test:cov
 
 - **Server** – `GET /v1` – Health / hello
 - **Branding** – `GET /v1/branding` – Returns `{ authorName, authorUrl }` on localhost or when the request host is the same as or a subdomain of `PLATFORM_URL`; otherwise returns nulls (copyright hidden). Used by the demo UI to hydrate the header and footer.
-- **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns AI-generated text (and can use web search internally)
-- **Expose (stream)** – `POST /v1/expose/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the AI response as `text/plain` with chunked transfer encoding
+- **Expose** – `POST /v1/expose/prompt` – Body: `{ "prompt": "string" }` – Returns a complete AI-generated text response
+- **Expose (stream)** – `POST /v1/expose/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the response as `text/event-stream` SSE
+
+### SSE event types (streaming endpoint)
+
+Each event is a JSON object on a `data:` line.
+
+| Event | Fields | Description |
+|-------|--------|-------------|
+| `searching` | `query` | Web search started (only emitted when `VALYU_API_KEY` is set) |
+| `search_done` | — | Web search complete; AI generation begins |
+| `text` | `v` | Incremental text delta from the model |
+| `reasoning` | `v` | Incremental reasoning delta (extended-thinking models) |
+| `tool_call` | `tool`, `args` | Model called an internal tool (e.g. `database`) |
+| `tool_result` | `tool` | Internal tool returned a result |
+| `done` | — | Stream complete |
+| `error` | `msg` | Stream-level error |
 
 Full request/response details and auth options are in the API docs at `/v1/docs`.
 
