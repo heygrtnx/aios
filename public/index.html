@@ -547,31 +547,60 @@
         }
       }
 
-      /* Search pill shown during web search tool call */
+      /* Search indicator shown during web search tool call */
       .msg-search-pill {
         display: inline-flex;
         align-items: center;
-        gap: 0.45rem;
-        padding: 0.375rem 0.75rem;
-        border-radius: 20px;
-        border: 1px solid rgba(109, 40, 217, 0.22);
-        background: rgba(109, 40, 217, 0.06);
-        color: #6d28d9;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem 0.4rem 0.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-hi);
+        background: var(--surface);
+        overflow: hidden;
+        position: relative;
+      }
+      .msg-search-pill::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--shimmer-mid) 40%,
+          transparent 100%
+        );
+        background-size: 200% 100%;
+        animation: search-sweep 1.4s ease-in-out infinite;
+      }
+      @keyframes search-sweep {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      .msg-search-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-hi);
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .msg-search-icon i {
+        font-size: 12px;
+        line-height: 1;
+        color: var(--text-3);
+      }
+      .msg-search-label {
         font-size: 0.75rem;
         font-family: var(--mono);
-        animation: pulse-search 1.4s ease-in-out infinite;
-      }
-      html[data-theme='dark'] .msg-search-pill {
-        border-color: rgba(167, 139, 250, 0.22);
-        background: rgba(167, 139, 250, 0.08);
-        color: #a78bfa;
-      }
-      .msg-search-pill i {
-        font-size: 0.9rem;
-      }
-      @keyframes pulse-search {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.55; }
+        font-weight: 400;
+        color: var(--text-3);
+        letter-spacing: 0.02em;
+        position: relative;
+        z-index: 1;
       }
 
       /* Reasoning / thinking step bubble */
@@ -1374,22 +1403,22 @@
         let reasoningEl = null;
 
         return {
-          showSearch(query) {
+          showSearch() {
             thinkingEl.remove();
             if (!searchPill) {
               searchPill = document.createElement('div');
               searchPill.className = 'msg-search-pill';
-              const ic = makeHgiIcon('globe');
-              searchPill.appendChild(ic);
+              const iconWrap = document.createElement('div');
+              iconWrap.className = 'msg-search-icon';
+              iconWrap.appendChild(makeHgiIcon('globe'));
+              searchPill.appendChild(iconWrap);
               const lbl = document.createElement('span');
+              lbl.className = 'msg-search-label';
+              lbl.textContent = 'Searching';
               searchPill.appendChild(lbl);
               row.appendChild(searchPill);
               forceScrollToBottom();
             }
-            const q = query && typeof query === 'object' ? (query.query || '') : (query || '');
-            searchPill.querySelector('span').textContent = q
-              ? 'Searching: \u201c' + q + '\u201d'
-              : 'Searching the internet\u2026';
           },
           hideSearch() {
             if (searchPill) { searchPill.remove(); searchPill = null; }
@@ -1680,7 +1709,7 @@
         try {
           const apiUrl =
             (window.location.origin || 'http://localhost:3000') +
-            '/v1/expose/prompt/stream';
+            '/v1/chat/prompt/stream';
           const res = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1720,7 +1749,7 @@
 
           const handleEvt = (evt) => {
             if (evt.t === 'searching') {
-              aiMsg.showSearch({ query: evt.query || '' });
+              aiMsg.showSearch();
               setStatus('searching');
             } else if (evt.t === 'search_done') {
               aiMsg.hideSearch();
