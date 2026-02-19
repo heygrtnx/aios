@@ -7,7 +7,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
 - **Streaming endpoint** – `POST /v1/expose/prompt/stream` to stream the AI response as `text/plain` (chunked)
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
-- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access and `ENVIRONMENT=production`, prompt endpoints are limited to **3 per day per IP** to reduce abuse. Set `ROLE=admin` to bypass this limit (unlimited prompts).
+- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access: only domains listed in `DOMAIN_CHAT` (one or more, comma-separated) have a per-day-per-IP limit (default **5**, or `PROMPTS_PER_DAY_CHAT`); all other domains are **unlimited**. Omit `DOMAIN_CHAT` for unlimited prompts everywhere.
 - **Demo page** – Root URL serves a simple streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line.
 - **API docs** – [Scalar](https://scalar.com/) API reference at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
@@ -51,9 +51,9 @@ cp .env.example .env
 | `AI_MODEL` | No | Model identifier (default: `anthropic/claude-sonnet-4.5`) |
 | `VALYU_API_KEY` | No | Valyu API key for web search (get free key at [platform.valyu.ai](https://platform.valyu.ai)); omit to disable web search |
 | `PORT` | No | Server port (default: `3000`) |
-| `ENVIRONMENT` | No | Set to `production` to enable abuse protection: when `API_KEY` is not set (open access), prompt endpoints are limited to **3 requests per day per IP**. |
 | `API_KEY` | No | If set, all routes require an `x-api-key: <value>` header. Omit or leave blank for open access. |
-| `ROLE` | No | Set to `admin` to bypass the open-access prompt limit (unlimited prompts per day when `ENVIRONMENT=production` and `API_KEY` is not set). |
+| `DOMAIN_CHAT` | No | When `API_KEY` is not set: comma-separated list of hostnames that get a per-day-per-IP limit (request `Host` must match one). Only these domains are limited; all other domains are **unlimited**. Omit for unlimited everywhere. |
+| `PROMPTS_PER_DAY_CHAT` | No | For domains listed in `DOMAIN_CHAT`, this many prompts per day per IP (default **5**). Ignored if `DOMAIN_CHAT` is not set. |
 | `PLATFORM_NAME` | No | Name used in API docs title (e.g. your product name) |
 | `PLATFORM_URL` | No | Main app URL (for API docs) |
 | `DEVELOPMENT_URL` | No | Dev server host (for API docs) |
@@ -95,6 +95,8 @@ pnpm run start:prod
 - **App / demo UI**: `http://localhost:3000` (streaming chat page)
 - **API**: `http://localhost:3000/v1` (all API routes use the `v1` prefix)
 - **API docs (Scalar)**: `http://localhost:3000/v1/docs`
+
+On startup the server logs `Unlimited prompts: true` when `DOMAIN_CHAT` is not set (no per-day limit), or `Unlimited prompts: false` when `DOMAIN_CHAT` is set (limit applied only to listed domain(s); other domains remain unlimited).
 
 ## Run tests
 

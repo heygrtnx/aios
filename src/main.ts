@@ -20,6 +20,16 @@ async function bootstrap() {
   const platform = configService.get<string>('PLATFORM_NAME');
   const logger = app.get(CustomLoggerService);
   const apiKeyEnabled = !!configService.get<string>('API_KEY');
+  const domainChatRaw = configService.get<string>('DOMAIN_CHAT');
+  const domainChatSet = domainChatRaw
+    ? new Set(
+        domainChatRaw
+          .split(',')
+          .map((d) => d.trim().toLowerCase())
+          .filter(Boolean),
+      )
+    : null;
+  const unlimitedPrompts = !domainChatSet?.size;
   const authorName = configService.get<string>('AUTHOR_NAME');
   const authorUrl = configService.get<string>('AUTHOR_URL');
 
@@ -102,6 +112,7 @@ async function bootstrap() {
     console.log(
       `API Key Auth: ${apiKeyEnabled ? 'ENABLED (x-api-key header required)' : 'DISABLED (open access)'}`,
     );
+    console.log(`Unlimited prompts: ${unlimitedPrompts}`);
     console.log(
       `Branding: ${authorName ? `ACTIVE (${authorName}${authorUrl ? ` — ${authorUrl}` : ''})` : 'DISABLED (AUTHOR_NAME not set)'}`,
     );
