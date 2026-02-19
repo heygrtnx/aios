@@ -1023,7 +1023,7 @@
           font-size: 0.875rem;
         }
         .chat-inner {
-          padding: 1.25rem 0.875rem 2rem;
+          padding: 1.25rem 0.875rem 3.5rem;
           gap: 1.25rem;
         }
         .input-area {
@@ -1613,6 +1613,7 @@
         promptEl.style.height = 'auto';
         clearPasteAttachment();
         clearBtn.classList.remove('show');
+        promptEl.blur();
 
         submitBtn.disabled = true;
         setStatus('thinking');
@@ -1684,7 +1685,7 @@
           submitBtn.disabled =
             promptEl.value.trim().length === 0 && pastedContent === null;
           inputCard.classList.remove('is-loading');
-          promptEl.focus();
+          if (window.innerWidth > 600) promptEl.focus();
         }
       });
     </script>
