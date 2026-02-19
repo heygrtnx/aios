@@ -21,8 +21,9 @@ export class OpenAccessPromptLimitGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const env = this.configService.get<string>('ENVIRONMENT');
     const apiKey = this.configService.get<string>('API_KEY');
+    const role = this.configService.get<string>('ROLE');
 
-    if (env !== 'production' || apiKey) {
+    if (env !== 'production' || apiKey || role === 'admin') {
       return true;
     }
 

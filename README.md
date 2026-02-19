@@ -7,7 +7,7 @@ A NestJS API backend that exposes an AI-powered assistant through a REST API. It
 - **AI chat endpoint** – `POST /v1/expose/prompt` to get AI-generated responses with optional web search (powered by [Valyu](https://www.npmjs.com/package/@valyu/ai-sdk))
 - **Streaming endpoint** – `POST /v1/expose/prompt/stream` to stream the AI response as `text/plain` (chunked)
 - **Configurable AI** – Uses [AI SDK](https://sdk.vercel.ai/) with a gateway; model and API key via env
-- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access and `ENVIRONMENT=production`, prompt endpoints are limited to **3 per day per IP** to reduce abuse.
+- **Optional API key auth** – Set `API_KEY` in env to require an `x-api-key` header on all routes; omit for open access. When open access and `ENVIRONMENT=production`, prompt endpoints are limited to **3 per day per IP** to reduce abuse. Set `ROLE=admin` to bypass this limit (unlimited prompts).
 - **Demo page** – Root URL serves a simple streaming chat UI (`public/index.html`): prompt box, Enter to send, Shift+Enter for new line.
 - **API docs** – [Scalar](https://scalar.com/) API reference at `/v1/docs` with configurable servers and Bearer auth
 - **Security** – Helmet, rate limiting, CORS, global validation pipe, and a custom exception filter
@@ -53,6 +53,7 @@ cp .env.example .env
 | `PORT` | No | Server port (default: `3000`) |
 | `ENVIRONMENT` | No | Set to `production` to enable abuse protection: when `API_KEY` is not set (open access), prompt endpoints are limited to **3 requests per day per IP**. |
 | `API_KEY` | No | If set, all routes require an `x-api-key: <value>` header. Omit or leave blank for open access. |
+| `ROLE` | No | Set to `admin` to bypass the open-access prompt limit (unlimited prompts per day when `ENVIRONMENT=production` and `API_KEY` is not set). |
 | `PLATFORM_NAME` | No | Name used in API docs title (e.g. your product name) |
 | `PLATFORM_URL` | No | Main app URL (for API docs) |
 | `DEVELOPMENT_URL` | No | Dev server host (for API docs) |
