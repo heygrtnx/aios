@@ -105,9 +105,7 @@ async function bootstrap() {
 
   const aiModelRaw = configService.get<string>('AI_MODEL')?.trim();
   const aiModel =
-    aiModelRaw && aiModelRaw.length > 0
-      ? aiModelRaw
-      : 'anthropic/claude-haiku-4.5';
+    aiModelRaw && aiModelRaw.length > 0 ? aiModelRaw : 'openai/gpt-4o-mini';
 
   try {
     await app.listen(port);

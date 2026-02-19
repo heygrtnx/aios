@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ExposeService } from './expose.service';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -8,6 +8,8 @@ import { OpenAccessPromptLimitGuard } from '../../middleware/guards/open-access-
 @Controller('expose')
 @UseGuards(OpenAccessPromptLimitGuard)
 export class ExposeController {
+  private readonly logger = new Logger(ExposeController.name);
+
   constructor(private readonly exposeService: ExposeService) {}
 
   @Post('prompt')
@@ -38,8 +40,6 @@ export class ExposeController {
     @Body() body: { prompt: string },
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
-    const { fullStream } = this.exposeService.streamResponse(body.prompt);
-
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -47,28 +47,59 @@ export class ExposeController {
 
     const emit = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
+    // Pre-search: fetch web context before AI generation
+    let searchContext: string | null = null;
+    if (this.exposeService.isWebSearchEnabled()) {
+      emit({ t: 'searching', query: body.prompt });
+      searchContext = await this.exposeService.searchWeb(body.prompt);
+      emit({ t: 'search_done' });
+    }
+
+    const { fullStream } = this.exposeService.streamResponse(body.prompt, searchContext);
+
+    let textDeltaCount = 0;
     try {
       for await (const part of fullStream) {
         switch (part.type) {
           case 'text-delta':
-            emit({ t: 'text', v: part.textDelta });
+            textDeltaCount++;
+            emit({ t: 'text', v: part.text });
             break;
           case 'tool-call':
-            emit({ t: 'tool_call', tool: part.toolName, args: part.args });
+            this.logger.log(`Tool call: ${part.toolName}`);
+            emit({ t: 'tool_call', tool: part.toolName, args: part.input });
             break;
           case 'tool-result':
+            this.logger.log(`Tool result: ${part.toolName}`);
             emit({ t: 'tool_result', tool: part.toolName });
             break;
-          case 'reasoning':
-            emit({ t: 'reasoning', v: part.textDelta });
+          case 'reasoning-delta':
+            emit({ t: 'reasoning', v: part.text });
             break;
           case 'finish':
+            this.logger.log(`Stream finished — text deltas: ${textDeltaCount}, reason: ${part.finishReason}`);
             emit({ t: 'done' });
+            break;
+          case 'error':
+            this.logger.error(`Stream error event: ${JSON.stringify(part.error)}`);
             break;
         }
       }
+      if (textDeltaCount === 0) {
+        this.logger.warn(
+          'Stream finished with no text from the model. Check AI_GATEWAY_API_KEY and model.',
+        );
+      }
     } catch (err: any) {
-      emit({ t: 'error', msg: err?.message ?? 'Stream error' });
+      const msg =
+        err?.message ??
+        err?.cause?.message ??
+        (typeof err?.cause?.responseBody === 'string'
+          ? err.cause.responseBody
+          : null) ??
+        'Stream error';
+      this.logger.error('Stream error', err?.stack ?? err);
+      emit({ t: 'error', msg });
     }
 
     res.end();

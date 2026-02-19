@@ -9,7 +9,18 @@ export class ExposeService {
     return this.aiService.generateResponse(prompt);
   }
 
-  streamResponse(prompt: string): { fullStream: AsyncIterable<any> } {
-    return this.aiService.streamResponse(prompt);
+  isWebSearchEnabled(): boolean {
+    return this.aiService.isWebSearchEnabled();
+  }
+
+  async searchWeb(prompt: string): Promise<string | null> {
+    return this.aiService.searchWeb(prompt);
+  }
+
+  streamResponse(
+    prompt: string,
+    searchContext?: string | null,
+  ): { fullStream: AsyncIterable<any> } {
+    return this.aiService.streamResponse(prompt, searchContext);
   }
 }

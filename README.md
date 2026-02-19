@@ -48,7 +48,7 @@ cp .env.example .env
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string (e.g. `postgresql://user:pass@localhost:5432/aios`) |
 | `AI_GATEWAY_API_KEY` | Yes | API key for the AI gateway used by the SDK |
-| `AI_MODEL` | No | Model identifier (default: `anthropic/claude-haiku-4.5`, cheapest) |
+| `AI_MODEL` | No | Model identifier (default: `openai/gpt-4o-mini`) |
 | `VALYU_API_KEY` | No | Valyu API key for web search (get free key at [platform.valyu.ai](https://platform.valyu.ai)); omit to disable web search |
 | `PORT` | No | Server port (default: `3000`) |
 | `API_KEY` | No | If set, all routes require an `x-api-key: <value>` header. Omit or leave blank for open access. |

@@ -21,11 +21,6 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    /**
-     * Correct modern usage:
-     * baseURL is NOT required.
-     * SDK automatically uses the correct gateway endpoint.
-     */
     this.gateway = createGateway({
       apiKey: this.configService.get<string>('AI_GATEWAY_API_KEY'),
     });
@@ -33,21 +28,49 @@ export class AiService {
   }
 
   private getTools() {
-    const tools: Record<
-      string,
-      ReturnType<typeof webSearch> | ReturnType<typeof createDbTool>
-    > = {
+    return {
       database: createDbTool(this.prisma),
     };
-    if (this.configService.get<string>('VALYU_API_KEY')) {
-      tools.webSearch = webSearch({});
-    }
-    return tools;
   }
 
   private getModel(): string {
     const env = this.configService.get<string>('AI_MODEL')?.trim();
     return env && env.length > 0 ? env : DEFAULT_AI_MODEL;
+  }
+
+  isWebSearchEnabled(): boolean {
+    return !!this.configService.get<string>('VALYU_API_KEY');
+  }
+
+  /** Searches the web and returns formatted context, or null if not configured / failed. */
+  async searchWeb(query: string): Promise<string | null> {
+    if (!this.isWebSearchEnabled()) return null;
+
+    try {
+      const tool = webSearch({ maxNumResults: 5, fastMode: true });
+      const results: any = await (tool as any).execute(
+        { query },
+        { toolCallId: 'pre-search', messages: [] },
+      );
+
+      if (!results?.results?.length) return null;
+
+      const formatted = (results.results as any[])
+        .slice(0, 5)
+        .map(
+          (r, i) =>
+            `[${i + 1}] ${r.title}\nURL: ${r.url}\n${(r.content ?? '').slice(0, 800)}`,
+        )
+        .join('\n\n');
+
+      return `<web_search_results>\nQuery: ${query}\n\n${formatted}\n</web_search_results>`;
+    } catch (err: any) {
+      this.logger.warn(
+        'Web search failed, continuing without context',
+        err?.message,
+      );
+      return null;
+    }
   }
 
   async generateResponse(userPrompt: string): Promise<string> {
@@ -70,14 +93,21 @@ export class AiService {
     }
   }
 
-  /** Returns the full event stream (text deltas, tool calls, results, etc.) for SSE. */
-  streamResponse(userPrompt: string): { fullStream: AsyncIterable<any> } {
+  /** Returns the full event stream for SSE. Injects web search context when provided. */
+  streamResponse(
+    userPrompt: string,
+    searchContext?: string | null,
+  ): { fullStream: AsyncIterable<any> } {
     const model = this.getModel();
     this.logger.log(`Using model: ${model}`);
 
+    const system = searchContext
+      ? `${SYSTEM_PROMPT}\n\n${searchContext}`
+      : SYSTEM_PROMPT;
+
     const result = streamText({
       model: this.gateway(model),
-      system: SYSTEM_PROMPT,
+      system,
       prompt: userPrompt,
       tools: this.getTools(),
       stopWhen: stepCountIs(5),

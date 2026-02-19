@@ -1456,7 +1456,6 @@
       }
 
       // ── Paste attachment ───────────────────────────
-      const PASTE_THRESHOLD = 500;
       let pastedContent = null;
 
       function updateSubmitState() {
@@ -1612,7 +1611,7 @@
 
       promptEl.addEventListener('paste', function (e) {
         var text = (e.clipboardData || window.clipboardData).getData('text');
-        if (text.length >= PASTE_THRESHOLD) {
+        if ((text.match(/\n/g) || []).length > 2) {
           e.preventDefault();
           showPastePill(text);
           updateSubmitState();
@@ -1714,55 +1713,59 @@
 
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
-          let sseBuffer = '';
+          let lineBuffer = '';
           let text = '';
           let textEl = null;
+          let streamError = false;
+
+          const handleEvt = (evt) => {
+            if (evt.t === 'searching') {
+              aiMsg.showSearch({ query: evt.query || '' });
+              setStatus('searching');
+            } else if (evt.t === 'search_done') {
+              aiMsg.hideSearch();
+              setStatus('thinking');
+            } else if (evt.t === 'reasoning') {
+              aiMsg.showReasoning(evt.v || '');
+            } else if (evt.t === 'text') {
+              if (!textEl) {
+                textEl = aiMsg.startStream();
+                setStatus('streaming');
+              }
+              text += evt.v || '';
+              // DOMPurify + marked: output is sanitized before DOM insertion
+              textEl.innerHTML = DOMPurify.sanitize(marked.parse(text)); // sanitized
+              scrollToBottom();
+            } else if (evt.t === 'error') {
+              streamError = true;
+              aiMsg.showError(evt.msg || 'Stream error from server.');
+              setStatus('error');
+            }
+          };
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            sseBuffer += decoder.decode(value, { stream: true });
+            lineBuffer += decoder.decode(value, { stream: true });
 
-            // Split on SSE double-newline message boundaries
-            const parts = sseBuffer.split('\n\n');
-            sseBuffer = parts.pop(); // keep incomplete last chunk
-
-            for (const part of parts) {
-              const line = part.trim();
+            // Process complete lines — each SSE data line ends with \n
+            let newlineIdx;
+            while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
+              const line = lineBuffer.slice(0, newlineIdx).trimEnd();
+              lineBuffer = lineBuffer.slice(newlineIdx + 1);
               if (!line.startsWith('data: ')) continue;
               let evt;
               try { evt = JSON.parse(line.slice(6)); } catch (_) { continue; }
-
-              if (evt.t === 'tool_call' && evt.tool === 'webSearch') {
-                aiMsg.showSearch(evt.args);
-                setStatus('searching');
-              } else if (evt.t === 'tool_result' && evt.tool === 'webSearch') {
-                aiMsg.hideSearch();
-                setStatus('thinking');
-              } else if (evt.t === 'reasoning') {
-                aiMsg.showReasoning(evt.v || '');
-              } else if (evt.t === 'text') {
-                if (!textEl) {
-                  textEl = aiMsg.startStream();
-                  setStatus('streaming');
-                }
-                text += evt.v || '';
-                // DOMPurify + marked: output is sanitized before DOM insertion
-                textEl.innerHTML = DOMPurify.sanitize(marked.parse(text)); // sanitized
-                scrollToBottom();
-              } else if (evt.t === 'error') {
-                aiMsg.showError(evt.msg || 'Stream error from server.');
-                setStatus('error');
-              }
+              handleEvt(evt);
             }
           }
 
-          if (text.length === 0) {
+          if (text.length === 0 && !streamError) {
             aiMsg.showError(
               'No response from the model. Check server logs and AI_GATEWAY_API_KEY in .env.',
             );
             setStatus('error');
-          } else {
+          } else if (text.length > 0) {
             aiMsg.finalize(text);
             setStatus('done');
           }
