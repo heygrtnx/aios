@@ -6,10 +6,11 @@ import { createGateway } from '@ai-sdk/gateway';
 
 import { systemPrompt as SYSTEM_PROMPT } from './sp';
 import { createDbTool } from './tools/db.tool';
+import { createMediaTool } from './tools/media.tool';
 import { webSearch } from '@valyu/ai-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 
-const DEFAULT_AI_MODEL = 'openai/gpt-3.5-turbo';
+const DEFAULT_AI_MODEL = 'openai/gpt-4o';
 
 @Injectable()
 export class AiService {
@@ -28,8 +29,10 @@ export class AiService {
   }
 
   private getTools() {
+    const model = this.gateway(this.getModel());
     const tools: Record<string, any> = {
       database: createDbTool(this.prisma),
+      media: createMediaTool(model),
     };
     if (this.isWebSearchEnabled()) {
       tools.webSearch = webSearch({ maxNumResults: 5, fastMode: true });
