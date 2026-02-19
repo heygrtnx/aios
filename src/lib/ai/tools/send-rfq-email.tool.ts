@@ -6,6 +6,10 @@ import type { SendMailsService } from '../../email/sendMail.service';
 import type { RfqData, RfqFollowup } from './rfq.tool';
 import { RFQ_DATA_TTL } from './rfq.tool';
 
+function fmt(n: number): string {
+  return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 const RFQ_FOLLOWUP_TTL = 60 * 60 * 24 * 7;
 
 export function createSendRfqEmailTool(
@@ -42,6 +46,12 @@ export function createSendRfqEmailTool(
         const platformName = config.get<string>('PLATFORM_NAME') || 'Sales Team';
         const subject = `Your Quote — ${quoteNumber}`;
 
+        const formattedLineItems = rfqData.lineItems.map((li) => ({
+          ...li,
+          unitPriceFormatted: li.unitPrice != null ? fmt(li.unitPrice) : null,
+          lineTotalFormatted: li.lineTotal != null ? fmt(li.lineTotal) : null,
+        }));
+
         await mailer.sendEmail(recipientEmail, subject, 'rfqQuote', {
           quoteNumber: rfqData.quoteNumber,
           quoteDate: rfqData.quoteDate,
@@ -49,7 +59,7 @@ export function createSendRfqEmailTool(
           contactName: rfqData.contactName,
           contactPhone: rfqData.contactPhone,
           contactEmail: rfqData.contactEmail,
-          lineItems: rfqData.lineItems,
+          lineItems: formattedLineItems,
           shipTo: rfqData.shipTo,
           deliveryDate: rfqData.deliveryDate,
           notes: rfqData.notes,

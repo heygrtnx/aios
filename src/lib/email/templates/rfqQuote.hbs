@@ -115,9 +115,9 @@
           <td class="sku">{{this.sku}}</td>
           <td>{{this.qty}}</td>
           <td>{{this.unit}}</td>
-          {{#if this.unitPrice}}
-          <td>${{this.unitPrice}}</td>
-          <td>${{this.lineTotal}}</td>
+          {{#if this.unitPriceFormatted}}
+          <td>${{this.unitPriceFormatted}}</td>
+          <td>${{this.lineTotalFormatted}}</td>
           {{else}}
           <td class="tbd">TBD</td>
           <td class="tbd">TBD</td>

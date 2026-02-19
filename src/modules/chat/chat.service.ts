@@ -445,6 +445,10 @@ export class ChatService {
     return { challenge };
   }
 
+  private static fmt(n: number): string {
+    return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
   /** Renders an HTML quote page for a given quote number (for download). */
   async downloadQuote(quoteNumber: string): Promise<string | null> {
     const rfqData: RfqData | null = await this.redisService.get(
@@ -462,7 +466,7 @@ export class ChatService {
           <td class="sku">${li.sku}</td>
           <td>${li.qty}</td>
           <td>${li.unit}</td>
-          ${li.unitPrice != null ? `<td>$${li.unitPrice}</td><td>$${li.lineTotal!.toFixed(2)}</td>` : `<td class="tbd">TBD</td><td class="tbd">TBD</td>`}
+          ${li.unitPrice != null ? `<td>$${ChatService.fmt(li.unitPrice)}</td><td>$${ChatService.fmt(li.lineTotal!)}</td>` : `<td class="tbd">TBD</td><td class="tbd">TBD</td>`}
         </tr>`,
       )
       .join('');

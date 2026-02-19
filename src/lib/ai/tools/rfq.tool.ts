@@ -50,6 +50,10 @@ function isoDate(offsetMs = 0): string {
   return new Date(Date.now() + offsetMs).toISOString().slice(0, 10);
 }
 
+function fmt(n: number): string {
+  return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function createRfqTool(
   config: ConfigService,
   redis: RedisService,
@@ -134,13 +138,13 @@ export function createRfqTool(
           return { sku: item.sku, qty: item.qty, unit, unitPrice, lineTotal };
         });
 
-        const total = hasAllPrices ? subtotal.toFixed(2) : 'TBD';
+        const total = hasAllPrices ? fmt(subtotal) : 'TBD';
 
         const itemsTable = lineItems
           .map((li) => {
             const priceCol =
               li.unitPrice != null
-                ? ` @ $${li.unitPrice} = $${li.lineTotal!.toFixed(2)}`
+                ? ` @ $${fmt(li.unitPrice)} = $${fmt(li.lineTotal!)}`
                 : ' — Price: TBD';
             return `• **${li.sku}** — Qty: ${li.qty} ${li.unit}${priceCol}`;
           })
