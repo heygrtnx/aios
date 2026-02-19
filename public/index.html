@@ -1584,7 +1584,7 @@
         promptEl.style.height = 'auto';
         clearPasteAttachment();
         clearBtn.classList.remove('show');
-        promptEl.blur();
+        if (window.innerWidth <= 600) promptEl.blur();
 
         submitBtn.disabled = true;
         setStatus('thinking');
