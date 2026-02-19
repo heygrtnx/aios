@@ -103,10 +103,17 @@ async function bootstrap() {
     }),
   );
 
+  const aiModelRaw = configService.get<string>('AI_MODEL')?.trim();
+  const aiModel =
+    aiModelRaw && aiModelRaw.length > 0
+      ? aiModelRaw
+      : 'anthropic/claude-haiku-4.5';
+
   try {
     await app.listen(port);
     const baseUrl = `http://localhost:${port}`;
     console.log(`Server running at ${baseUrl}`);
+    console.log(`AI model: ${aiModel}`);
     console.log(`Scalar: ${baseUrl}/v1/docs`);
     console.log(`Swagger: ${baseUrl}/v1/swagger`);
     console.log(

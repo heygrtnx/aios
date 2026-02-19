@@ -29,6 +29,7 @@ export class AiService {
     this.gateway = createGateway({
       apiKey: this.configService.get<string>('AI_GATEWAY_API_KEY'),
     });
+    this.logger.log(`AI model activated: ${this.getModel()}`);
   }
 
   private getTools() {
@@ -45,12 +46,14 @@ export class AiService {
   }
 
   private getModel(): string {
-    return this.configService.get<string>('AI_MODEL') ?? DEFAULT_AI_MODEL;
+    const env = this.configService.get<string>('AI_MODEL')?.trim();
+    return env && env.length > 0 ? env : DEFAULT_AI_MODEL;
   }
 
   async generateResponse(userPrompt: string): Promise<string> {
     try {
       const model = this.getModel();
+      this.logger.log(`Using model: ${model}`);
 
       const result = await generateText({
         model: this.gateway(model),
@@ -70,6 +73,7 @@ export class AiService {
   /** Returns the full event stream (text deltas, tool calls, results, etc.) for SSE. */
   streamResponse(userPrompt: string): { fullStream: AsyncIterable<any> } {
     const model = this.getModel();
+    this.logger.log(`Using model: ${model}`);
 
     const result = streamText({
       model: this.gateway(model),
