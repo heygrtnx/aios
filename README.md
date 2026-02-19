@@ -191,11 +191,51 @@ To change the assistant’s personality and scope, edit the system prompt in `sr
 
 ## Slack bot setup
 
-1. Create a Slack app at [api.slack.com/apps](https://api.slack.com/apps).
-2. Under **OAuth & Permissions**, add the `chat:write` bot scope, then install the app to your workspace and copy the **Bot User OAuth Token** (`xoxb-…`) → `SLACK_BOT_TOKEN`.
-3. Under **Basic Information**, copy the **Signing Secret** → `SLACK_SIGNING_SECRET`.
-4. Under **Event Subscriptions**, enable events and set the Request URL to `https://<your-host>/v1/chat/slack/events`. Subscribe to the bot events `app_mention` and `message.im`.
-5. Restart the server. The bot replies to mentions in channels and direct messages, with per-user conversation history persisted in Redis.
+### 1. Create a Slack app
+
+Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**.
+
+### 2. Get your credentials
+
+- **Basic Information** → copy **Signing Secret** → set as `SLACK_SIGNING_SECRET`
+- **OAuth & Permissions** → add bot scope **`chat:write`** → **Install to Workspace** → copy the **Bot User OAuth Token** (`xoxb-…`) → set as `SLACK_BOT_TOKEN`
+
+### 3. Expose your server publicly
+
+Slack needs to reach your endpoint. If running locally, use a tunnel:
+
+```bash
+npx ngrok http 3000
+```
+
+Copy the `https://….ngrok.io` URL.
+
+### 4. Enable Event Subscriptions
+
+In your Slack app → **Event Subscriptions** → toggle **Enable Events** → set Request URL to:
+
+```
+https://<your-ngrok-or-domain>/v1/chat/slack/events
+```
+
+Slack will immediately send a `url_verification` challenge — the server handles it automatically and Slack will show **Verified**.
+
+Then under **Subscribe to bot events**, add:
+- `app_mention` — bot is @mentioned in a channel
+- `message.im` — direct messages to the bot
+
+Save changes.
+
+### 5. Invite the bot to a channel
+
+In Slack: `/invite @<your-app-name>` in any channel you want it active in.
+
+### 6. Talk to it
+
+- **In a channel**: `@your-bot-name hello`
+- **In DMs**: send a message directly
+
+The bot replies in-thread and remembers conversation history per user (last 20 messages, 7-day TTL via Redis). Slack retries are deduplicated automatically.
 
 ## License
 
