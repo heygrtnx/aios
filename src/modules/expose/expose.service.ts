@@ -9,7 +9,7 @@ export class ExposeService {
     return this.aiService.generateResponse(prompt);
   }
 
-  streamResponse(prompt: string): { textStream: AsyncIterable<string> } {
+  streamResponse(prompt: string): { fullStream: AsyncIterable<any> } {
     return this.aiService.streamResponse(prompt);
   }
 }

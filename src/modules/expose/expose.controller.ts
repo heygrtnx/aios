@@ -1,6 +1,5 @@
 import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
-import { Readable } from 'stream';
 import { ExposeService } from './expose.service';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OpenAccessPromptLimitGuard } from '../../middleware/guards/open-access-prompt-limit.guard';
@@ -39,20 +38,39 @@ export class ExposeController {
     @Body() body: { prompt: string },
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
-    const { textStream } = this.exposeService.streamResponse(body.prompt);
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    // SDK returns AsyncIterableStream (ReadableStream); Node 18+ can pipe via fromWeb.
-    // Cast via unknown to avoid DOM vs Node stream/web ReadableStream type conflict.
-    const nodeStream =
-      typeof (textStream as ReadableStream).getReader === 'function'
-        ? Readable.fromWeb(textStream as unknown as Parameters<typeof Readable.fromWeb>[0])
-        : Readable.from(textStream as AsyncIterable<string>);
-    nodeStream.pipe(res);
-    return new Promise<void>((resolve, reject) => {
-      res.on('finish', () => resolve());
-      res.on('error', reject);
-      nodeStream.on('error', reject);
-    });
+    const { fullStream } = this.exposeService.streamResponse(body.prompt);
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const emit = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+      for await (const part of fullStream) {
+        switch (part.type) {
+          case 'text-delta':
+            emit({ t: 'text', v: part.textDelta });
+            break;
+          case 'tool-call':
+            emit({ t: 'tool_call', tool: part.toolName, args: part.args });
+            break;
+          case 'tool-result':
+            emit({ t: 'tool_result', tool: part.toolName });
+            break;
+          case 'reasoning':
+            emit({ t: 'reasoning', v: part.textDelta });
+            break;
+          case 'finish':
+            emit({ t: 'done' });
+            break;
+        }
+      }
+    } catch (err: any) {
+      emit({ t: 'error', msg: err?.message ?? 'Stream error' });
+    }
+
+    res.end();
   }
 }

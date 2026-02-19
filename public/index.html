@@ -226,6 +226,16 @@
       html[data-theme='dark'] .status.s-error {
         border-color: rgba(248, 113, 113, 0.2);
       }
+      .status.s-searching {
+        color: #6d28d9;
+        background: rgba(109, 40, 217, 0.06);
+        border-color: rgba(109, 40, 217, 0.18);
+      }
+      html[data-theme='dark'] .status.s-searching {
+        color: #a78bfa;
+        background: rgba(167, 139, 250, 0.08);
+        border-color: rgba(167, 139, 250, 0.2);
+      }
 
       .status-dot {
         width: 5px;
@@ -235,7 +245,8 @@
         flex-shrink: 0;
       }
       .status.s-thinking .status-dot,
-      .status.s-streaming .status-dot {
+      .status.s-streaming .status-dot,
+      .status.s-searching .status-dot {
         animation: pulse-dot 0.9s ease-in-out infinite;
       }
 
@@ -534,6 +545,47 @@
         100% {
           background-position: -200% 0;
         }
+      }
+
+      /* Search pill shown during web search tool call */
+      .msg-search-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        border: 1px solid rgba(109, 40, 217, 0.22);
+        background: rgba(109, 40, 217, 0.06);
+        color: #6d28d9;
+        font-size: 0.75rem;
+        font-family: var(--mono);
+        animation: pulse-search 1.4s ease-in-out infinite;
+      }
+      html[data-theme='dark'] .msg-search-pill {
+        border-color: rgba(167, 139, 250, 0.22);
+        background: rgba(167, 139, 250, 0.08);
+        color: #a78bfa;
+      }
+      .msg-search-pill i {
+        font-size: 0.9rem;
+      }
+      @keyframes pulse-search {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+      }
+
+      /* Reasoning / thinking step bubble */
+      .msg-reasoning {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        line-height: 1.55;
+        color: var(--text-2);
+        padding: 0.5rem 0.75rem;
+        border-left: 2px solid var(--border-hi);
+        margin-bottom: 0.5rem;
+        opacity: 0.7;
+        white-space: pre-wrap;
+        max-width: 100%;
       }
 
       /* Inline error */
@@ -1226,6 +1278,7 @@
       const STATUS_MAP = {
         ready: { cls: '', label: 'READY' },
         thinking: { cls: 's-thinking', label: 'THINKING' },
+        searching: { cls: 's-searching', label: 'SEARCHING' },
         streaming: { cls: 's-streaming', label: 'REPLYING' },
         done: { cls: 's-done', label: 'DONE' },
         error: { cls: 's-error', label: 'ERROR' },
@@ -1237,7 +1290,7 @@
         statusText.textContent = m.label;
         inputCard.classList.toggle(
           'is-loading',
-          s === 'thinking' || s === 'streaming',
+          s === 'thinking' || s === 'searching' || s === 'streaming',
         );
       }
 
@@ -1317,10 +1370,42 @@
         forceScrollToBottom();
 
         let textEl = null;
+        let searchPill = null;
+        let reasoningEl = null;
 
         return {
+          showSearch(query) {
+            thinkingEl.remove();
+            if (!searchPill) {
+              searchPill = document.createElement('div');
+              searchPill.className = 'msg-search-pill';
+              const ic = makeHgiIcon('globe');
+              searchPill.appendChild(ic);
+              const lbl = document.createElement('span');
+              searchPill.appendChild(lbl);
+              row.appendChild(searchPill);
+              forceScrollToBottom();
+            }
+            const q = query && typeof query === 'object' ? (query.query || '') : (query || '');
+            searchPill.querySelector('span').textContent = q
+              ? 'Searching: \u201c' + q + '\u201d'
+              : 'Searching the internet\u2026';
+          },
+          hideSearch() {
+            if (searchPill) { searchPill.remove(); searchPill = null; }
+          },
+          showReasoning(delta) {
+            if (!reasoningEl) {
+              reasoningEl = document.createElement('div');
+              reasoningEl.className = 'msg-reasoning';
+              row.appendChild(reasoningEl);
+            }
+            reasoningEl.textContent += delta;
+            scrollToBottom();
+          },
           startStream() {
             thinkingEl.remove();
+            if (searchPill) { searchPill.remove(); searchPill = null; }
             textEl = document.createElement('div');
             textEl.className = 'msg-text';
             row.appendChild(textEl);
@@ -1328,6 +1413,7 @@
           },
           showError(msg) {
             thinkingEl.remove();
+            if (searchPill) { searchPill.remove(); searchPill = null; }
             const errEl = document.createElement('div');
             errEl.className = 'msg-error';
             errEl.textContent = '\u26A0  ' + msg;
@@ -1626,18 +1712,49 @@
             return;
           }
 
-          setStatus('streaming');
-          const textEl = aiMsg.startStream();
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
+          let sseBuffer = '';
           let text = '';
+          let textEl = null;
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            text += decoder.decode(value, { stream: true });
-            textEl.innerHTML = DOMPurify.sanitize(marked.parse(text)); // already sanitized
-            scrollToBottom();
+            sseBuffer += decoder.decode(value, { stream: true });
+
+            // Split on SSE double-newline message boundaries
+            const parts = sseBuffer.split('\n\n');
+            sseBuffer = parts.pop(); // keep incomplete last chunk
+
+            for (const part of parts) {
+              const line = part.trim();
+              if (!line.startsWith('data: ')) continue;
+              let evt;
+              try { evt = JSON.parse(line.slice(6)); } catch (_) { continue; }
+
+              if (evt.t === 'tool_call' && evt.tool === 'webSearch') {
+                aiMsg.showSearch(evt.args);
+                setStatus('searching');
+              } else if (evt.t === 'tool_result' && evt.tool === 'webSearch') {
+                aiMsg.hideSearch();
+                setStatus('thinking');
+              } else if (evt.t === 'reasoning') {
+                aiMsg.showReasoning(evt.v || '');
+              } else if (evt.t === 'text') {
+                if (!textEl) {
+                  textEl = aiMsg.startStream();
+                  setStatus('streaming');
+                }
+                text += evt.v || '';
+                // DOMPurify + marked: output is sanitized before DOM insertion
+                textEl.innerHTML = DOMPurify.sanitize(marked.parse(text)); // sanitized
+                scrollToBottom();
+              } else if (evt.t === 'error') {
+                aiMsg.showError(evt.msg || 'Stream error from server.');
+                setStatus('error');
+              }
+            }
           }
 
           if (text.length === 0) {

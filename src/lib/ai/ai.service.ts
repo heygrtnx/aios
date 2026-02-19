@@ -9,6 +9,8 @@ import { createDbTool } from './tools/db.tool';
 import { webSearch } from '@valyu/ai-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 
+const DEFAULT_AI_MODEL = 'anthropic/claude-haiku-4.5';
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -30,7 +32,10 @@ export class AiService {
   }
 
   private getTools() {
-    const tools: Record<string, ReturnType<typeof webSearch> | ReturnType<typeof createDbTool>> = {
+    const tools: Record<
+      string,
+      ReturnType<typeof webSearch> | ReturnType<typeof createDbTool>
+    > = {
       database: createDbTool(this.prisma),
     };
     if (this.configService.get<string>('VALYU_API_KEY')) {
@@ -39,11 +44,13 @@ export class AiService {
     return tools;
   }
 
+  private getModel(): string {
+    return this.configService.get<string>('AI_MODEL') ?? DEFAULT_AI_MODEL;
+  }
+
   async generateResponse(userPrompt: string): Promise<string> {
     try {
-      const model =
-        this.configService.get<string>('AI_MODEL') ??
-        'anthropic/claude-sonnet-4.5';
+      const model = this.getModel();
 
       const result = await generateText({
         model: this.gateway(model),
@@ -60,11 +67,9 @@ export class AiService {
     }
   }
 
-  /** Returns a stream of text chunks; avoids leaking the SDK's internal return type. */
-  streamResponse(userPrompt: string): { textStream: AsyncIterable<string> } {
-    const model =
-      this.configService.get<string>('AI_MODEL') ??
-      'anthropic/claude-sonnet-4.5';
+  /** Returns the full event stream (text deltas, tool calls, results, etc.) for SSE. */
+  streamResponse(userPrompt: string): { fullStream: AsyncIterable<any> } {
+    const model = this.getModel();
 
     const result = streamText({
       model: this.gateway(model),
@@ -74,6 +79,6 @@ export class AiService {
       stopWhen: stepCountIs(5),
     });
 
-    return { textStream: result.textStream };
+    return { fullStream: result.fullStream };
   }
 }
