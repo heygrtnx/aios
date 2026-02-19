@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AiService } from 'src/lib/ai/ai.service';
 import { WhatsappService } from 'src/lib/whatsapp/wa.service';
+import { RedisService } from 'src/lib/redis/redis.service';
+
+const HISTORY_LIMIT = 20;
+const HISTORY_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 @Injectable()
 export class ChatService {
@@ -9,6 +15,7 @@ export class ChatService {
   constructor(
     private readonly aiService: AiService,
     private readonly whatsappService: WhatsappService,
+    private readonly redisService: RedisService,
   ) {}
 
   async generateResponse(prompt: string): Promise<string> {
@@ -94,17 +101,38 @@ export class ChatService {
     if (!messages) return;
 
     const message = messages[0];
-    const messageSender: string = message.from;
+    if (message.type !== 'text') return;
+
+    const phoneNumber: string = message.from;
     const messageID: string = message.id;
+    const userText: string = message.text.body;
 
-    await this.whatsappService.markMessageAsRead(messageID);
+    // Mark as read + show typing indicator
+    await this.whatsappService.sendReadWithTyping(messageID);
 
-    if (message.type === 'text') {
-      await this.whatsappService.sendWhatsAppMessage(
-        messageSender,
-        message.text.body,
-        messageID,
-      );
-    }
+    // Load history from Redis
+    const historyKey = `chat:history:${phoneNumber}`;
+    const history: ChatMessage[] =
+      (await this.redisService.get(historyKey)) ?? [];
+
+    // Build messages for AI (last N + new user message)
+    const aiMessages: ChatMessage[] = [
+      ...history.slice(-HISTORY_LIMIT),
+      { role: 'user', content: userText },
+    ];
+
+    // Generate response with history
+    const aiResponse =
+      await this.aiService.generateResponseWithHistory(aiMessages);
+
+    // Persist updated history to Redis (with TTL)
+    await this.redisService.set(
+      historyKey,
+      [...aiMessages, { role: 'assistant', content: aiResponse }],
+      HISTORY_TTL_SECONDS,
+    );
+
+    // Send reply
+    await this.whatsappService.sendMessage(phoneNumber, messageID, aiResponse);
   }
 }

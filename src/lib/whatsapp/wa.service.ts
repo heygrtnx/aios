@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { catchError, lastValueFrom, map } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
-import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class WhatsappService {
@@ -13,64 +12,48 @@ export class WhatsappService {
     },
   };
 
-  constructor(
-    private readonly httpService: HttpService,
-    private readonly aiService: AiService,
-  ) {}
+  constructor(private readonly httpService: HttpService) {}
 
-  async sendWhatsAppMessage(
-    messageSender: string,
-    userInput: string,
-    messageID: string,
-  ) {
-    const aiResponse = await this.aiService.generateResponse(userInput);
-
-    const data = JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: messageSender,
-      context: {
-        message_id: messageID,
-      },
-      type: 'text',
-      text: {
-        preview_url: false,
-        body: aiResponse,
-      },
-    });
-
-    try {
-      const response = this.httpService.post(this.url, data, this.config).pipe(
-        map((res) => res.data),
-        catchError(() => {
-          throw new BadRequestException('Error Posting To WhatsApp Cloud API');
-        }),
-      );
-
-      await lastValueFrom(response);
-    } catch (error) {
-      return 'Axle broke!! Abort mission!!';
-    }
-  }
-
-  async markMessageAsRead(messageID: string) {
+  /** Marks the incoming message as read AND shows the typing indicator in one call. */
+  async sendReadWithTyping(messageID: string): Promise<void> {
     const data = JSON.stringify({
       messaging_product: 'whatsapp',
       status: 'read',
       message_id: messageID,
+      typing_indicator: { type: 'text' },
     });
 
-    try {
-      const response = this.httpService.post(this.url, data, this.config).pipe(
-        map((res) => res.data),
-        catchError(() => {
-          throw new BadRequestException('Error Marking Message As Read');
-        }),
-      );
+    const response = this.httpService.post(this.url, data, this.config).pipe(
+      map((res) => res.data),
+      catchError(() => {
+        throw new BadRequestException('Error sending typing indicator');
+      }),
+    );
 
-      await lastValueFrom(response);
-    } catch (error) {
-      return 'Axle broke!! Abort mission!!';
-    }
+    await lastValueFrom(response);
+  }
+
+  async sendMessage(
+    to: string,
+    messageID: string,
+    text: string,
+  ): Promise<void> {
+    const data = JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      context: { message_id: messageID },
+      type: 'text',
+      text: { preview_url: false, body: text },
+    });
+
+    const response = this.httpService.post(this.url, data, this.config).pipe(
+      map((res) => res.data),
+      catchError(() => {
+        throw new BadRequestException('Error sending WhatsApp message');
+      }),
+    );
+
+    await lastValueFrom(response);
   }
 }

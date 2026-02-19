@@ -9,7 +9,7 @@
     "node": ">=22.10.7"
   },
   "scripts": {
-    "build": "pnpm prisma migrate deploy && pnpm prisma generate && pnpm run seed && nest build",
+    "build": "pnpm prisma migrate deploy && pnpm prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -23,8 +23,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "pnpm ts-node -r dotenv/config -r tsconfig-paths/register src/lib/prisma/seed.ts"
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.49",
@@ -42,6 +41,7 @@
     "class-validator": "^0.14.3",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
+    "ioredis": "^5.9.3",
     "moment-timezone": "^0.6.0",
     "multer": "^2.0.2",
     "pg": "^8.18.0",

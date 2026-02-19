@@ -9,7 +9,7 @@ import { createDbTool } from './tools/db.tool';
 import { webSearch } from '@valyu/ai-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 
-const DEFAULT_AI_MODEL = 'anthropic/claude-haiku-4.5';
+const DEFAULT_AI_MODEL = 'openai/gpt-3.5-turbo';
 
 @Injectable()
 export class AiService {
@@ -74,6 +74,14 @@ export class AiService {
   }
 
   async generateResponse(userPrompt: string): Promise<string> {
+    return this.generateResponseWithHistory([
+      { role: 'user', content: userPrompt },
+    ]);
+  }
+
+  async generateResponseWithHistory(
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ): Promise<string> {
     try {
       const model = this.getModel();
       this.logger.log(`Using model: ${model}`);
@@ -81,7 +89,7 @@ export class AiService {
       const result = await generateText({
         model: this.gateway(model),
         system: SYSTEM_PROMPT,
-        prompt: userPrompt,
+        messages,
         tools: this.getTools(),
         stopWhen: stepCountIs(5),
       });
