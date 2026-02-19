@@ -209,10 +209,13 @@ export function createRfqTool(
         }
 
         // ── Build download URL ────────────────────────────────────────────────
-        const baseUrl =
-          config.get<string>('PRODUCTION_URL') ||
-          config.get<string>('DEVELOPMENT_URL') ||
-          'http://localhost:3000';
+        const nodeEnv = config.get<string>('NODE_ENV') || 'development';
+        const port = config.get<number>('PORT') || 3000;
+        const rawUrl =
+          nodeEnv === 'production'
+            ? (config.get<string>('PRODUCTION_URL') || config.get<string>('DEVELOPMENT_URL') || `http://localhost:${port}`)
+            : (config.get<string>('DEVELOPMENT_URL') || `http://localhost:${port}`);
+        const baseUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
         const downloadUrl = `${baseUrl}/v1/chat/rfq/${quoteNumber}/download`;
 
         return {
