@@ -1,11 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { catchError, lastValueFrom, map } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class WhatsappService {
-  private readonly logger = new Logger(WhatsappService.name);
   private readonly url = `https://graph.facebook.com/${process.env.WHATSAPP_CLOUD_API_VERSION}/${process.env.WHATSAPP_CLOUD_API_PHONE_NUMBER_ID}/messages`;
   private readonly config = {
     headers: {
@@ -43,18 +42,13 @@ export class WhatsappService {
     try {
       const response = this.httpService.post(this.url, data, this.config).pipe(
         map((res) => res.data),
-        catchError((error) => {
-          const errorMessage =
-            error.response?.data || error.message || 'Unknown error';
-          this.logger.error(`Error Details: ${JSON.stringify(errorMessage)}`);
+        catchError(() => {
           throw new BadRequestException('Error Posting To WhatsApp Cloud API');
         }),
       );
 
-      const messageSendingStatus = await lastValueFrom(response);
-      this.logger.log('Message Sent. Status:', messageSendingStatus);
+      await lastValueFrom(response);
     } catch (error) {
-      this.logger.error(`SendWhatsAppMessage failed: ${error.message}`);
       return 'Axle broke!! Abort mission!!';
     }
   }
@@ -69,18 +63,13 @@ export class WhatsappService {
     try {
       const response = this.httpService.post(this.url, data, this.config).pipe(
         map((res) => res.data),
-        catchError((error) => {
-          const errorMessage =
-            error.response?.data || error.message || 'Unknown error';
-          this.logger.error(`Error Details: ${JSON.stringify(errorMessage)}`);
+        catchError(() => {
           throw new BadRequestException('Error Marking Message As Read');
         }),
       );
 
-      const messageStatus = await lastValueFrom(response);
-      this.logger.log('Message Marked As Read. Status:', messageStatus);
+      await lastValueFrom(response);
     } catch (error) {
-      this.logger.error(`MarkMessageAsRead failed: ${error.message}`);
       return 'Axle broke!! Abort mission!!';
     }
   }
