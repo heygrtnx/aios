@@ -555,38 +555,141 @@
         align-items: center;
         gap: 0.25rem;
         opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s;
+        pointer-events: auto;
+        transition: opacity 0.18s;
       }
       .msg:hover .msg-actions,
       .msg-actions:focus-within {
         opacity: 1;
-        pointer-events: auto;
       }
       .msg-actions-user { align-self: flex-end; }
       .msg-actions-ai   { align-self: flex-start; }
 
       .msg-action-btn {
-        display: grid;
-        place-items: center;
-        width: 26px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
         height: 26px;
-        background: transparent;
-        border: 1px solid transparent;
+        padding: 0 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border-hi);
         border-radius: 6px;
-        color: var(--text-3);
+        color: var(--text-2);
         cursor: pointer;
-        padding: 0;
+        font-family: var(--ui);
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
         flex-shrink: 0;
-        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+        box-shadow: 0 1px 3px var(--focus-shadow2);
       }
       .msg-action-btn:hover {
         background: var(--surface-2);
-        border-color: var(--border-hi);
-        color: var(--text-2);
+        border-color: var(--focus-border);
+        color: var(--text);
+        box-shadow: 0 2px 6px var(--focus-shadow2);
       }
-      .msg-action-btn.copied { color: var(--green); }
-      .msg-action-btn i { font-size: 13px; line-height: 1; }
+      .msg-action-btn.copied { color: var(--green); border-color: currentColor; }
+      .msg-action-btn i { font-size: 12px; line-height: 1; flex-shrink: 0; }
+
+      /* ─── Email card ──────────────────────────── */
+      .msg-email-card {
+        background: var(--surface);
+        border: 1px solid var(--border-hi);
+        border-radius: var(--r);
+        overflow: hidden;
+        max-width: 100%;
+      }
+      .msg-email-hd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border-hi);
+      }
+      .msg-email-label {
+        font-size: 0.5625rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-3);
+      }
+      .msg-email-hd-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .msg-email-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: var(--surface);
+        border: 1px solid var(--border-hi);
+        border-radius: 6px;
+        color: var(--text-2);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px var(--focus-shadow2);
+      }
+      .msg-email-icon-btn:hover {
+        background: var(--surface-2);
+        color: var(--text);
+        border-color: var(--focus-border);
+        box-shadow: 0 2px 6px var(--focus-shadow2);
+      }
+      .msg-email-icon-btn.copied { color: var(--green); border-color: currentColor; }
+      .msg-email-icon-btn i { font-size: 13px; line-height: 1; }
+      .msg-email-subject {
+        display: flex;
+        align-items: baseline;
+        gap: 0.625rem;
+        padding: 0.6875rem 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .msg-email-subject-lbl {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        color: var(--text-3);
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+      }
+      .msg-email-subject-txt {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1.4;
+      }
+      .msg-email-body {
+        padding: 1rem;
+        font-family: var(--mono);
+        font-size: 0.875rem;
+        font-weight: 300;
+        line-height: 1.85;
+        color: var(--text);
+        letter-spacing: 0.008em;
+      }
+      .msg-email-body p { margin: 0 0 0.65em; }
+      .msg-email-body p:last-of-type { margin-bottom: 0; }
+      .msg-email-body strong { font-weight: 600; color: var(--text); }
+      .msg-email-placeholder {
+        display: inline-block;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.22);
+        border-radius: 4px;
+        padding: 0.05em 0.35em;
+        font-family: var(--mono);
+        font-size: 0.9em;
+        color: var(--text);
+      }
+      html[data-theme='dark'] .msg-email-placeholder {
+        background: rgba(129, 140, 248, 0.13);
+        border-color: rgba(129, 140, 248, 0.24);
+      }
 
       .hidden {
         display: none !important;
@@ -1230,10 +1333,12 @@
         chatInner.appendChild(row);
         forceScrollToBottom();
 
+        let textEl = null;
+
         return {
           startStream() {
             thinkingEl.remove();
-            const textEl = document.createElement('div');
+            textEl = document.createElement('div');
             textEl.className = 'msg-text';
             row.appendChild(textEl);
             return textEl;
@@ -1246,31 +1351,37 @@
             row.appendChild(errEl);
           },
           finalize(rawText) {
-            const actions = document.createElement('div');
-            actions.className = 'msg-actions msg-actions-ai';
+            if (/^\s*subject\s*:/im.test(rawText)) {
+              // Replace plain streaming view with email card
+              if (textEl) textEl.remove();
+              renderEmailCard(rawText, row);
+            } else {
+              const actions = document.createElement('div');
+              actions.className = 'msg-actions msg-actions-ai';
 
-            const copyBtn = makeActionBtn('copy-01', 'Copy response');
-            copyBtn.addEventListener('click', function () {
-              navigator.clipboard.writeText(rawText).then(function () {
-                flashCheck(copyBtn);
+              const copyBtn = makeActionBtn('copy-01', 'Copy response');
+              copyBtn.addEventListener('click', function () {
+                navigator.clipboard.writeText(rawText).then(function () {
+                  flashCheck(copyBtn);
+                });
               });
-            });
-            actions.appendChild(copyBtn);
+              actions.appendChild(copyBtn);
 
-            const shareBtn = makeActionBtn('share-08', 'Share response');
-            shareBtn.addEventListener('click', async function () {
-              if (navigator.share) {
-                try {
-                  await navigator.share({ text: rawText });
-                } catch (_) {}
-              } else {
-                await navigator.clipboard.writeText(rawText);
-                flashCheck(shareBtn);
-              }
-            });
-            actions.appendChild(shareBtn);
+              const shareBtn = makeActionBtn('share-08', 'Share response');
+              shareBtn.addEventListener('click', async function () {
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ text: rawText });
+                  } catch (_) {}
+                } else {
+                  await navigator.clipboard.writeText(rawText);
+                  flashCheck(shareBtn);
+                }
+              });
+              actions.appendChild(shareBtn);
 
-            row.appendChild(actions);
+              row.appendChild(actions);
+            }
           },
         };
       }
@@ -1298,10 +1409,31 @@
         return i;
       }
 
+      const ACTION_LABELS = {
+        'copy-01': 'Copy',
+        'pencil-edit-01': 'Edit',
+        'share-08': 'Share',
+      };
+
       function makeActionBtn(iconName, label) {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'msg-action-btn';
+        btn.setAttribute('aria-label', label);
+        btn.appendChild(makeHgiIcon(iconName));
+        var shortLabel = ACTION_LABELS[iconName];
+        if (shortLabel) {
+          var txt = document.createElement('span');
+          txt.textContent = shortLabel;
+          btn.appendChild(txt);
+        }
+        return btn;
+      }
+
+      function makeEmailIconBtn(iconName, label) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'msg-email-icon-btn';
         btn.setAttribute('aria-label', label);
         btn.appendChild(makeHgiIcon(iconName));
         return btn;
@@ -1316,6 +1448,78 @@
           icon.className = prev;
           btn.classList.remove('copied');
         }, 1500);
+      }
+
+      function renderEmailCard(rawText, row) {
+        const subjectMatch = rawText.match(/^[ \t]*subject\s*:\s*(.+)$/im);
+        const subject = subjectMatch ? subjectMatch[1].trim() : null;
+
+        let body = rawText;
+        if (subjectMatch) {
+          body = (rawText.slice(0, subjectMatch.index) + rawText.slice(subjectMatch.index + subjectMatch[0].length)).trim();
+        }
+
+        const card = document.createElement('div');
+        card.className = 'msg-email-card';
+
+        // Header
+        const hd = document.createElement('div');
+        hd.className = 'msg-email-hd';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'msg-email-label';
+        lbl.textContent = 'Email';
+        hd.appendChild(lbl);
+
+        const hdActions = document.createElement('div');
+        hdActions.className = 'msg-email-hd-actions';
+
+        const copyBtn = makeEmailIconBtn('copy-01', 'Copy email');
+        copyBtn.addEventListener('click', function () {
+          navigator.clipboard.writeText(rawText).then(function () { flashCheck(copyBtn); });
+        });
+        hdActions.appendChild(copyBtn);
+
+        const shareBtn = makeEmailIconBtn('share-08', 'Share email');
+        shareBtn.addEventListener('click', async function () {
+          if (navigator.share) {
+            try { await navigator.share({ text: rawText }); } catch (_) {}
+          } else {
+            await navigator.clipboard.writeText(rawText);
+            flashCheck(shareBtn);
+          }
+        });
+        hdActions.appendChild(shareBtn);
+
+        hd.appendChild(hdActions);
+        card.appendChild(hd);
+
+        // Subject line
+        if (subject) {
+          const subjectEl = document.createElement('div');
+          subjectEl.className = 'msg-email-subject';
+          const subjectLbl = document.createElement('span');
+          subjectLbl.className = 'msg-email-subject-lbl';
+          subjectLbl.textContent = 'Subject';
+          const subjectTxt = document.createElement('span');
+          subjectTxt.className = 'msg-email-subject-txt';
+          subjectTxt.textContent = subject;
+          subjectEl.appendChild(subjectLbl);
+          subjectEl.appendChild(subjectTxt);
+          card.appendChild(subjectEl);
+        }
+
+        // Body — highlight [placeholders] then render markdown
+        const bodyEl = document.createElement('div');
+        bodyEl.className = 'msg-email-body';
+        const highlighted = body.replace(
+          /\[([^\]\n]+)\]/g,
+          '<span class="msg-email-placeholder">[$1]</span>'
+        );
+        bodyEl.innerHTML = DOMPurify.sanitize(marked.parse(highlighted)); // already sanitized
+        card.appendChild(bodyEl);
+
+        row.appendChild(card);
       }
 
       function showPastePill(text) {

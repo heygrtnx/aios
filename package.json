@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "MIT",
+  "engines": {
+    "node": ">=22.10.7"
+  },
   "scripts": {
     "build": "pnpm prisma migrate deploy && pnpm prisma generate && pnpm run seed && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
