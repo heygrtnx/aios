@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AiService } from 'src/lib/ai/ai.service';
+import { AiService, ChatMessage, Attachment } from 'src/lib/ai/ai.service';
 import { WhatsappService } from 'src/lib/whatsapp/wa.service';
 import { RedisService } from 'src/lib/redis/redis.service';
 import { SlackService } from 'src/lib/slack/slack.service';
@@ -7,8 +7,6 @@ import { SlackService } from 'src/lib/slack/slack.service';
 const HISTORY_LIMIT = 20;
 const HISTORY_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const SLACK_EVENT_DEDUP_TTL = 300; // 5 minutes
-
-type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 @Injectable()
 export class ChatService {
@@ -29,10 +27,14 @@ export class ChatService {
     prompt: string,
     emit: (data: object) => void,
     history?: ChatMessage[],
+    attachments?: Attachment[],
   ): Promise<void> {
+    const userMessage: ChatMessage = { role: 'user', content: prompt };
+    if (attachments?.length) userMessage.attachments = attachments;
+
     const messages: ChatMessage[] = [
       ...(history ?? []).slice(-HISTORY_LIMIT),
-      { role: 'user', content: prompt },
+      userMessage,
     ];
     const { fullStream } = this.aiService.streamResponseWithHistory(messages);
 

@@ -60,6 +60,20 @@ export class ChatController {
             },
           },
         },
+        attachments: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              mimeType: { type: 'string' },
+              data: {
+                type: 'string',
+                description: 'Base64-encoded file content',
+              },
+            },
+          },
+        },
       },
     },
   })
@@ -68,6 +82,11 @@ export class ChatController {
     body: {
       prompt: string;
       history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+      attachments?: Array<{
+        name: string;
+        mimeType: string;
+        data: string;
+      }>;
     },
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
@@ -79,7 +98,12 @@ export class ChatController {
     const emit = (data: object) =>
       res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-    await this.chatService.handleStreamPrompt(body.prompt, emit, body.history);
+    await this.chatService.handleStreamPrompt(
+      body.prompt,
+      emit,
+      body.history,
+      body.attachments,
+    );
 
     res.end();
   }

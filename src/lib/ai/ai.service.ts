@@ -12,6 +12,19 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const DEFAULT_AI_MODEL = 'openai/gpt-4o';
 
+export type Attachment = {
+  name: string;
+  mimeType: string;
+  /** base64-encoded file data */
+  data: string;
+};
+
+export type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  attachments?: Attachment[];
+};
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -80,15 +93,46 @@ export class AiService {
     }
   }
 
+  private buildSdkMessages(messages: ChatMessage[]): any[] {
+    return messages.map((msg) => {
+      if (
+        msg.role === 'user' &&
+        msg.attachments &&
+        msg.attachments.length > 0
+      ) {
+        const parts: any[] = [];
+        for (const att of msg.attachments) {
+          const bytes = Buffer.from(att.data, 'base64');
+          if (att.mimeType.startsWith('image/')) {
+            parts.push({
+              type: 'image',
+              image: new Uint8Array(bytes),
+              mimeType: att.mimeType,
+            });
+          } else {
+            parts.push({
+              type: 'file',
+              data: new Uint8Array(bytes),
+              mediaType: att.mimeType,
+            });
+          }
+        }
+        if (msg.content) {
+          parts.push({ type: 'text', text: msg.content });
+        }
+        return { role: 'user', content: parts };
+      }
+      return { role: msg.role, content: msg.content };
+    });
+  }
+
   async generateResponse(userPrompt: string): Promise<string> {
     return this.generateResponseWithHistory([
       { role: 'user', content: userPrompt },
     ]);
   }
 
-  async generateResponseWithHistory(
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-  ): Promise<string> {
+  async generateResponseWithHistory(messages: ChatMessage[]): Promise<string> {
     try {
       const model = this.getModel();
       this.logger.log(`Using model: ${model}`);
@@ -96,7 +140,7 @@ export class AiService {
       const result = await generateText({
         model: this.gateway(model),
         system: SYSTEM_PROMPT,
-        messages,
+        messages: this.buildSdkMessages(messages),
         tools: this.getTools(),
         stopWhen: stepCountIs(5),
       });
@@ -108,17 +152,16 @@ export class AiService {
     }
   }
 
-  /** Returns the full event stream for SSE with conversation history. */
-  streamResponseWithHistory(
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-  ): { fullStream: AsyncIterable<any> } {
+  streamResponseWithHistory(messages: ChatMessage[]): {
+    fullStream: AsyncIterable<any>;
+  } {
     const model = this.getModel();
     this.logger.log(`Using model: ${model}`);
 
     const result = streamText({
       model: this.gateway(model),
       system: SYSTEM_PROMPT,
-      messages,
+      messages: this.buildSdkMessages(messages),
       tools: this.getTools(),
       stopWhen: stepCountIs(5),
     });
