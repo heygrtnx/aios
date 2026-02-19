@@ -28,9 +28,13 @@ export class AiService {
   }
 
   private getTools() {
-    return {
+    const tools: Record<string, any> = {
       database: createDbTool(this.prisma),
     };
+    if (this.isWebSearchEnabled()) {
+      tools.webSearch = webSearch({ maxNumResults: 5, fastMode: true });
+    }
+    return tools;
   }
 
   private getModel(): string {
@@ -101,21 +105,14 @@ export class AiService {
     }
   }
 
-  /** Returns the full event stream for SSE. Injects web search context when provided. */
-  streamResponse(
-    userPrompt: string,
-    searchContext?: string | null,
-  ): { fullStream: AsyncIterable<any> } {
+  /** Returns the full event stream for SSE. */
+  streamResponse(userPrompt: string): { fullStream: AsyncIterable<any> } {
     const model = this.getModel();
     this.logger.log(`Using model: ${model}`);
 
-    const system = searchContext
-      ? `${SYSTEM_PROMPT}\n\n${searchContext}`
-      : SYSTEM_PROMPT;
-
     const result = streamText({
       model: this.gateway(model),
-      system,
+      system: SYSTEM_PROMPT,
       prompt: userPrompt,
       tools: this.getTools(),
       stopWhen: stepCountIs(5),

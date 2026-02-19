@@ -1753,7 +1753,10 @@
               setStatus('searching');
             } else if (evt.t === 'search_done') {
               aiMsg.hideSearch();
-              setStatus('thinking');
+              if (!textEl) {
+                textEl = aiMsg.startStream();
+              }
+              setStatus('streaming');
             } else if (evt.t === 'reasoning') {
               aiMsg.showReasoning(evt.v || '');
             } else if (evt.t === 'text') {

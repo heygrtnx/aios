@@ -29,14 +29,7 @@ export class ChatService {
     prompt: string,
     emit: (data: object) => void,
   ): Promise<void> {
-    let searchContext: string | null = null;
-    if (this.aiService.isWebSearchEnabled()) {
-      emit({ t: 'searching', query: prompt });
-      searchContext = await this.aiService.searchWeb(prompt);
-      emit({ t: 'search_done' });
-    }
-
-    const { fullStream } = this.aiService.streamResponse(prompt, searchContext);
+    const { fullStream } = this.aiService.streamResponse(prompt);
 
     let textDeltaCount = 0;
     try {
@@ -48,11 +41,15 @@ export class ChatService {
             break;
           case 'tool-call':
             this.logger.log(`Tool call: ${part.toolName}`);
-            emit({ t: 'tool_call', tool: part.toolName, args: part.input });
+            if (part.toolName === 'webSearch') {
+              emit({ t: 'searching' });
+            }
             break;
           case 'tool-result':
             this.logger.log(`Tool result: ${part.toolName}`);
-            emit({ t: 'tool_result', tool: part.toolName });
+            if (part.toolName === 'webSearch') {
+              emit({ t: 'search_done' });
+            }
             break;
           case 'reasoning-delta':
             emit({ t: 'reasoning', v: part.text });
