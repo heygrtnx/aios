@@ -53,6 +53,21 @@ export class SlackService {
   }
 
   /**
+   * Builds the Slack OAuth install URL using env-configured client ID and scopes.
+   */
+  buildInstallUrl(): string {
+    const clientId = process.env.SLACK_CLIENT_ID;
+    const scopes = process.env.SLACK_SCOPES ?? '';
+
+    if (!clientId) {
+      throw new BadRequestException('SLACK_CLIENT_ID not configured');
+    }
+
+    const params = new URLSearchParams({ client_id: clientId, scope: scopes });
+    return `https://slack.com/oauth/v2/authorize?${params.toString()}`;
+  }
+
+  /**
    * Exchanges a Slack OAuth code for an access token.
    * https://api.slack.com/methods/oauth.v2.access
    */

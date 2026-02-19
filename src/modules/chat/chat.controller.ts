@@ -86,6 +86,14 @@ export class ChatController {
     return 'OK';
   }
 
+  @Get('slack/add')
+  @Public()
+  @ApiOperation({ summary: 'Redirect to Slack OAuth install page' })
+  addSlackApp(@Res() res: Response) {
+    const url = this.slackService.buildInstallUrl();
+    return res.redirect(url);
+  }
+
   @Get('slack/events')
   @Public()
   @ApiOperation({ summary: 'Slack OAuth callback — exchanges code for token' })
