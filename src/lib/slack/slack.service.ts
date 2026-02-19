@@ -53,6 +53,55 @@ export class SlackService {
   }
 
   /**
+   * Exchanges a Slack OAuth code for an access token.
+   * https://api.slack.com/methods/oauth.v2.access
+   */
+  async exchangeOAuthCode(
+    code: string,
+    redirectUri: string,
+  ): Promise<Record<string, any>> {
+    const clientId = process.env.SLACK_CLIENT_ID;
+    const clientSecret = process.env.SLACK_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      throw new BadRequestException(
+        'SLACK_CLIENT_ID or SLACK_CLIENT_SECRET not configured',
+      );
+    }
+
+    const params = new URLSearchParams({
+      code,
+      redirect_uri: redirectUri,
+    });
+
+    const response = this.httpService
+      .post(`${SLACK_API_BASE}/oauth.v2.access`, params.toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        },
+      })
+      .pipe(
+        map((res) => {
+          if (!res.data.ok) {
+            this.logger.error(`Slack OAuth error: ${res.data.error}`);
+            throw new BadRequestException(
+              `Slack OAuth error: ${res.data.error}`,
+            );
+          }
+          return res.data;
+        }),
+        catchError((err) => {
+          throw new BadRequestException(
+            err?.message ?? 'Error exchanging Slack OAuth code',
+          );
+        }),
+      );
+
+    return lastValueFrom(response);
+  }
+
+  /**
    * Verifies a Slack request signature.
    * Prevents replay attacks (rejects timestamps older than 5 minutes).
    * https://api.slack.com/authentication/verifying-requests-from-slack

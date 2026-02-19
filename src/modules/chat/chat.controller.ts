@@ -86,6 +86,32 @@ export class ChatController {
     return 'OK';
   }
 
+  @Get('slack/events')
+  @Public()
+  @ApiOperation({ summary: 'Slack OAuth callback — exchanges code for token' })
+  async handleSlackOAuth(
+    @Query('code') code: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (!code) {
+      return res.status(400).send('Missing OAuth code');
+    }
+
+    const redirectUri = `${req.protocol}://${req.get('host')}${req.path}`;
+    const data = await this.slackService.exchangeOAuthCode(code, redirectUri);
+
+    this.logger.log(
+      `Slack OAuth success — team: ${data.team?.name} (${data.team?.id})`,
+    );
+
+    return res
+      .status(200)
+      .send(
+        `<html><body><h2>Slack app installed successfully!</h2><p>Team: ${data.team?.name}</p></body></html>`,
+      );
+  }
+
   @Post('slack/events')
   @HttpCode(200)
   @Public()

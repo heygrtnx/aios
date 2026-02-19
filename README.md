@@ -66,6 +66,8 @@ cp .env.example .env
 | `CORS_ORIGINS` | No | Comma-separated list of extra allowed origins (e.g. `https://app.com,https://other.com`). All `http(s)://localhost` and `http(s)://127.0.0.1` ports are always allowed by default. |
 | `SLACK_BOT_TOKEN` | No | Slack bot OAuth token (starts with `xoxb-`). Required for the Slack bot to send messages. |
 | `SLACK_SIGNING_SECRET` | No | Slack app signing secret. Used to verify that incoming webhook requests originate from Slack. Verification is skipped when unset (not recommended in production). |
+| `SLACK_CLIENT_ID` | No | Slack app client ID (found in Basic Information). Required to handle the OAuth install callback. |
+| `SLACK_CLIENT_SECRET` | No | Slack app client secret (found in Basic Information). Required to handle the OAuth install callback. |
 | `WHATSAPP_CLOUD_API_VERSION` | No | WhatsApp Cloud API version (e.g. `v17.0`). Required for the WhatsApp bot. |
 | `WHATSAPP_CLOUD_API_PHONE_NUMBER_ID` | No | Phone number ID from your Meta app dashboard. Required for the WhatsApp bot. |
 | `WHATSAPP_CLOUD_API_ACCESS_TOKEN` | No | Permanent or temporary access token from your Meta app. Required for the WhatsApp bot. |
@@ -128,7 +130,8 @@ pnpm run test:cov
 - **Chat (stream)** – `POST /v1/chat/prompt/stream` – Body: `{ "prompt": "string" }` – Streams the response as `text/event-stream` SSE
 - **WhatsApp** – `GET /v1/chat/webhook` – Webhook verification challenge (Meta subscription setup)
 - **WhatsApp** – `POST /v1/chat/webhook` – Incoming WhatsApp messages
-- **Slack** – `POST /v1/chat/slack/events` – Slack Event API webhook; handles `url_verification` and `event_callback` (app_mention, message.im)
+- **Slack (OAuth callback)** – `GET /v1/chat/slack/events` – Slack OAuth install callback; exchanges the `code` param for an access token after a workspace installs the app
+- **Slack (events)** – `POST /v1/chat/slack/events` – Slack Event API webhook; handles `url_verification` and `event_callback` (app_mention, message.im)
 
 ### SSE event types (streaming endpoint)
 
@@ -198,6 +201,8 @@ Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** �
 ### 2. Get your credentials
 
 - **Basic Information** → copy **Signing Secret** → set as `SLACK_SIGNING_SECRET`
+- **Basic Information** → copy **Client ID** → set as `SLACK_CLIENT_ID`
+- **Basic Information** → copy **Client Secret** → set as `SLACK_CLIENT_SECRET`
 - **OAuth & Permissions** → add bot scope **`chat:write`** → **Install to Workspace** → copy the **Bot User OAuth Token** (`xoxb-…`) → set as `SLACK_BOT_TOKEN`
 
 ### 3. Expose your server publicly
@@ -236,6 +241,44 @@ In Slack: `/invite @<your-app-name>` in any channel you want it active in.
 - **In DMs**: send a message directly
 
 The bot replies in-thread and remembers conversation history per user (last 20 messages, 7-day TTL via Redis). Slack retries are deduplicated automatically.
+
+### How other users find and chat with the bot
+
+#### Within the same workspace
+
+Anyone already in the workspace can:
+- **DM the bot** — search for it by name in the sidebar under **Apps**, or click **+** next to **Direct messages**
+- **Mention it in a channel** — `@your-bot-name hello` in any channel it has been invited to
+
+Invite it to more channels with `/invite @your-bot-name`.
+
+#### For users in other workspaces
+
+You have two options:
+
+**Option A — Share an install link (easiest)**
+
+In your Slack app settings → **Manage Distribution** → enable **Distribute App** → set the **Redirect URL** to:
+
+```
+https://<your-domain>/v1/chat/slack/events
+```
+
+Then copy the **Shareable URL**. Anyone with that link can install the bot into their own workspace via the OAuth flow. After they authorize, Slack redirects to the callback above which exchanges the code for a token and shows a success page.
+
+Make sure `SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET` are set in env for the callback to work.
+
+> **Note:** The current implementation uses a single `SLACK_BOT_TOKEN`, so it only sends messages back to the one workspace it was originally installed in. To support multiple workspaces you would need to store each workspace's token after their OAuth install completes.
+
+**Option B — Publish to the Slack App Directory**
+
+Go to **Manage Distribution** → **Submit to App Directory**. Slack reviews and lists it publicly so anyone can discover and install it.
+
+| Goal | What to do |
+|------|-----------|
+| Same workspace | Search the bot by name → DM or invite to channel |
+| Other workspaces (private) | Share the install URL from Manage Distribution |
+| Public (anyone) | Submit to Slack App Directory |
 
 ## License
 
